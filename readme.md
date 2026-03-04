@@ -1,177 +1,158 @@
-# Dial a Therapist GH
+# Dial-A-Therapist Ghana
 
-**Slogan:** *Your care is our care*  
-**Brand Colors:** Black & Gold  
-**Stack:** Next.js (App Router), Tailwind CSS, API Routes, In-Memory Mock Database  
+Your care is our care.
 
----
+Dial-A-Therapist Ghana is a modern healthcare web platform for occupational therapy services, appointment intake, and community impact communication.
 
-## 🏥 Overview
+## Overview
 
-Dial a Therapist GH is a multi-page Occupational Therapy website built with modern web technologies.  
+This project provides:
 
-This project includes:
+- Public pages for services, about, contact, and impact
+- End-to-end appointment request intake
+- Admin dashboard for appointment management
+- Community Impact story management with image uploads
+- Supabase-powered auth, database, and storage
+- Responsive UI in a Black and Gold brand style
 
-- Public service pages
-- Appointment request system
-- Intake & consent form
-- Admin dashboard
-- Mock backend API
-- Fully responsive design
-- WhatsApp integration
+## Current Tech Stack
 
-This is an MVP starter build designed to be scalable and production-ready for further expansion.
-
----
-
-## 🚀 Tech Stack
-
-- Next.js 14 (App Router)
-- React 18
+- React 19
+- Vite 6
+- TypeScript
+- React Router
 - Tailwind CSS
-- Node API Routes
-- In-memory mock database
+- Motion + Lucide icons
+- Supabase (Auth, Postgres, Storage)
 
-## ⚙️ Installation & Setup
+## Core Features
 
-### 1. Clone the repository
+### Public Experience
+- Home, About, Services, Contact, Community Impact
+- Appointment request form with full intake fields
+- WhatsApp quick contact integration
+- Custom 404 page
 
-```bash
-git clone https://github.com/your-username/dial-a-therapist-gh.git
-cd dial-a-therapist-gh
-````
+### Admin Experience
+- Secure admin login via Supabase Auth
+- Appointment table with status updates (Pending, Confirmed, Cancelled)
+- Detailed appointment modal for full intake review
+- Impact story create, edit, and delete workflow
 
-### 2. Install dependencies
+### Community Impact Stories
+- Admin can upload 1 to 3 images per story
+- Public cards show a main image plus thumbnail previews
+- Clicking thumbnails switches the visible card image
+- Story deletion removes both record and linked storage objects
+
+## Data and Security Model
+
+- Supabase Postgres is the system of record
+- Row Level Security policies control access by role and email
+- Public users can submit forms and read published impact stories
+- Admin users can manage appointments and impact stories
+- Supabase Storage bucket serves impact story images
+
+## Project Structure
+
+```text
+.
+├── docs/
+│   ├── admin-user-manual.md
+│   ├── developer-it-manual.md
+│   ├── visitor-user-manual.md
+│   └── supabase-setup.sql
+├── public/
+├── src/
+│   ├── pages/
+│   ├── services/
+│   └── types/
+├── .env.example
+├── package.json
+└── readme.md
+```
+
+## Local Setup
+
+### 1) Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Run development server
+### 2) Configure environment variables
+
+Create a `.env` file based on `.env.example`.
+
+Required values:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_ADMIN_EMAIL`
+- `VITE_SUPABASE_IMPACT_BUCKET` (default: `impact-images`)
+
+### 3) Configure Supabase
+
+Run the SQL setup script in your Supabase SQL Editor:
+
+- `docs/supabase-setup.sql`
+
+This creates tables, enables RLS, and configures storage policies used by the app.
+
+### 4) Start development server
 
 ```bash
 npm run dev
 ```
 
-Visit:
+Default local URL:
 
-```
-http://localhost:3000
-```
-
----
-
-## 🧩 Features
-
-### Public Pages
-
-* Home
-* About
-* Services
-* Pediatrics
-* Mental Health
-* Professionals
-* Community Impact
-* Contact
-
-### Appointment Request System
-
-* Client submits:
-
-  * Name
-  * Email
-  * Phone
-  * Service Type
-  * Preferred Date/Time
-  * Consent checkbox
-* Status defaults to **Pending**
-* Saved in mock database
-* Simulated confirmation response
-
-### Intake & Consent Form
-
-* Personal details
-* Basic medical history
-* Consent agreement
-* Stored in mock backend
-
-### Admin Dashboard
-
-* Hardcoded demo login
-* View appointments
-* View intake forms
-* Change appointment status
-* Clean table UI
-
----
-
-## 📱 WhatsApp Integration
-
-Floating button available on all pages.
-
-Pre-filled message:
-
-```
-Hello, I would like to inquire about therapy services.
+```text
+http://localhost:5173
 ```
 
-Messages are responded to during working hours.
+## Scripts
 
----
+- `npm run dev` – start local development server
+- `npm run lint` – run TypeScript type checks
+- `npm run build` – build production bundle
+- `npm run preview` – preview production build locally
 
-## 🎨 Branding
+## Admin Operations Quick Guide
 
-* Primary Color: Black (#000000)
-* Accent Color: Gold (#D4AF37)
-* Style: Professional, calm, healthcare-focused, accessible
+1. Log in with configured admin account.
+2. Review and update incoming appointments.
+3. Add impact stories with up to 3 images.
+4. Edit or delete stories as needed.
 
----
+Detailed role manuals:
 
-## ⚠️ Important Notes
+- `docs/admin-user-manual.md`
+- `docs/visitor-user-manual.md`
+- `docs/developer-it-manual.md`
 
-* This project uses an **in-memory database**.
-* Data resets when the server restarts.
-* No online payments included.
-* Community initiatives are managed manually.
-* Not HIPAA-compliant (for demo use only).
+## Deployment Notes
 
----
+- Deploy as a static frontend application (Vite build output)
+- Ensure environment variables are set in your host
+- Ensure Supabase policies and storage bucket are configured before go-live
+- Validate admin login and image upload flows after deployment
 
-## 🔄 Future Improvements
+## Known Notes
 
-* Persistent database (MongoDB/PostgreSQL)
-* JWT authentication
-* Role-based access control
-* Email service integration
-* Deployment via Vercel
-* Production security hardening
-
----
-
-## 📄 License
-
-This project is provided as a starter template for Dial a Therapist GH.
-
----
-
-## 🤝 Contributing
-
-1. Fork the project
-2. Create a feature branch
-3. Commit changes
-4. Submit a pull request
-
----
+- This is not a medical records platform and is not HIPAA-certified.
+- Payment processing is not included.
+- Access control currently centers on configured admin email policy.
 
 ## Contact
 
-For inquiries:
+For organizational inquiries:
 
-* Email: [info@dialatherapistgh.com](mailto:info@dialatherapistgh.com)
-* WhatsApp: Available via floating button
+- Email: info@dialatherapistgh.com
+- WhatsApp: available via floating button in the app
 
 ---
 
-**Dial a Therapist GH**
-*Your care is our care*
+Dial-A-Therapist Ghana
+*Your care is our care.*
 
