@@ -468,6 +468,7 @@ export default function AdminDashboard() {
                   <p className="text-stone-500 text-xs sm:text-sm break-all">Request ID: {selectedAppointment.id}</p>
                 </div>
                 <button 
+                title="selected appointments"
                   onClick={() => setSelectedAppointment(null)}
                   className="p-2 hover:bg-stone-200 rounded-full transition-all"
                 >

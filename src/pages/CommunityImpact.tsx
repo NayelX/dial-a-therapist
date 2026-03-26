@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { Heart, Users, Gift, Info, ExternalLink, Quote, Facebook, ChevronRight, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
@@ -251,12 +252,12 @@ export default function CommunityImpact() {
                       )}
                     </AnimatePresence>
 
-                    <a 
-                      href="/contact"
+                    <Link 
+                      to="/contact"
                       className="w-full py-4 bg-charcoal text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-charcoal-deep transition-all text-center block"
                     >
                       Support This Initiative
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </motion.div>

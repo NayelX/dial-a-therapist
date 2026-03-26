@@ -47,7 +47,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-1">Call Us</p>
-                    <p className="font-bold">+233 (0) 24 000 0000</p>
+                    <p className="font-bold">+233 (0) 55 298 9900</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">

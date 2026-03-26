@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { Award, Heart, Users, ShieldCheck, Star } from 'lucide-react';
 import profileImage from '../assets/images/profile.jpg';
 
@@ -115,9 +116,9 @@ export default function Profile() {
                   <h3 className="text-2xl font-bold mb-2">Ready to work with OT Mildred?</h3>
                   <p className="text-charcoal/70">Schedule your initial consultation today.</p>
                 </div>
-                <a href="/appointment" className="bg-charcoal text-white px-8 py-4 rounded-full font-bold hover:bg-charcoal-deep transition-all whitespace-nowrap">
+                <Link to="/appointment" className="bg-charcoal text-white px-8 py-4 rounded-full font-bold hover:bg-charcoal-deep transition-all whitespace-nowrap">
                   Book a Consultation
-                </a>
+                </Link>
               </div>
             </motion.div>
           </div>
