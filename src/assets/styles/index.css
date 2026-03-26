@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-gold: #D4AF37;
-  --color-gold-light: #F4E0A1;
-  --color-gold-dark: #996515;
+  --color-charcoal: #2D2D2D;
+  --color-charcoal-deep: #222222;
+  --color-charcoal-soft: #3A3A3A;
+  --color-gold: #b89b4a;
+  --color-gold-light: #d9c78e;
+  --color-gold-dark: #8d7534;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", serif;
 }
 
 @layer base {
   body {
-    @apply bg-white text-black font-sans;
+    @apply bg-white text-charcoal font-sans;
   }
 }
 

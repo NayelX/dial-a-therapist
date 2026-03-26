@@ -74,7 +74,7 @@ export default function AppointmentRequest() {
           </p>
           <button 
             onClick={() => setStatus('idle')}
-            className="w-full bg-black text-white py-4 rounded-full font-bold hover:bg-stone-900 transition-all"
+            className="w-full bg-charcoal text-white py-4 rounded-full font-bold hover:bg-charcoal-deep transition-all"
           >
             Return to Form
           </button>
@@ -112,6 +112,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="text"
+                    title="Full Name"
                     value={formData.fullName}
                     onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -122,6 +123,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="date"
+                    title="Date of Birth"
                     value={formData.dob}
                     onChange={(e) => setFormData({...formData, dob: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -131,6 +133,7 @@ export default function AppointmentRequest() {
                   <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Gender</label>
                   <select 
                     required
+                    title="Gender"
                     value={formData.gender}
                     onChange={(e) => setFormData({...formData, gender: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -146,6 +149,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="tel"
+                    title="Phone Number"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -156,6 +160,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="email"
+                    title="Email Address"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -166,6 +171,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="text"
+                    title="Residential Address"
                     value={formData.address}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -179,6 +185,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="text"
+                    title="Emergency Contact Name"
                     value={formData.emergencyContactName}
                     onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -189,6 +196,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="tel"
+                    title="Emergency Contact Phone"
                     value={formData.emergencyContactPhone}
                     onChange={(e) => setFormData({...formData, emergencyContactPhone: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -254,6 +262,7 @@ export default function AppointmentRequest() {
                   <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Service Type</label>
                   <select 
                     required
+                    title="Service Type"
                     value={formData.serviceType}
                     onChange={(e) => setFormData({...formData, serviceType: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -269,6 +278,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="date"
+                    title="Preferred Date"
                     value={formData.preferredDate}
                     onChange={(e) => setFormData({...formData, preferredDate: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
@@ -279,6 +289,7 @@ export default function AppointmentRequest() {
                   <input 
                     required
                     type="time"
+                    title="Preferred Time"
                     value={formData.preferredTime}
                     onChange={(e) => setFormData({...formData, preferredTime: e.target.value})}
                     className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"

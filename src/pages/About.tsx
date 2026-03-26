@@ -37,7 +37,7 @@ export default function About() {
                 referrerPolicy="no-referrer"
               />
             </div>
-            <div className="absolute -bottom-8 -right-8 bg-black text-white p-8 rounded-3xl shadow-xl hidden md:block border border-gold/20">
+            <div className="absolute -bottom-8 -right-8 bg-charcoal text-white p-8 rounded-3xl shadow-xl hidden md:block border border-gold/20">
               <p className="text-gold font-bold text-lg mb-2 italic">"Your care is our care."</p>
               <p className="text-white/60 text-sm">Our founding philosophy</p>
             </div>
@@ -54,7 +54,7 @@ export default function About() {
               To provide exceptional, person-centered occupational therapy services that empower our clients to achieve their highest level of independence and quality of life through meaningful engagement in daily occupations.
             </p>
           </div>
-          <div className="p-12 rounded-[3rem] bg-black text-white border border-white/5">
+          <div className="p-12 rounded-[3rem] bg-charcoal text-white border border-white/5">
             <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black mb-8">
               <Eye size={32} />
             </div>

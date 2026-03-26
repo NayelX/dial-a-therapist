@@ -6,15 +6,21 @@ export default function Home() {
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
-      <section className="relative h-[90vh] flex items-center bg-black">
-        <div className="absolute inset-0 opacity-40">
-          <img 
-            src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=2000" 
-            alt="Healthcare background" 
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent"></div>
+      <section className="relative h-[90vh] flex items-center bg-[#f6f2e8]">
+        <div className="absolute inset-0">
+          <picture>
+            <source
+              media="(min-width: 768px)"
+              srcSet="https://images.unsplash.com/photo-1579600161224-cac5a2971069?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDIyfHx8ZW58MHx8fHx8"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1541976844346-f18aeac57b06?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              alt="Therapy support session"
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </picture>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#f6f2e8]/95 via-[#f6f2e8]/65 to-[#f6f2e8]/20"></div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -24,13 +30,13 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="max-w-2xl"
           >
-            <span className="inline-block px-4 py-1.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-6">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-[#fff8e2] border border-gold/40 text-gold-dark text-xs font-bold uppercase tracking-widest mb-6">
               Occupational Therapy Practice
             </span>
-            <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tighter leading-[1.1] mb-6">
+            <h1 className="text-5xl md:text-7xl font-bold text-charcoal tracking-tighter leading-[1.1] mb-6">
               Your care is <span className="text-gold">our care.</span>
             </h1>
-            <p className="text-xl text-white/70 mb-10 leading-relaxed">
+            <p className="text-xl text-charcoal/80 mb-10 leading-relaxed">
               Empowering individuals to live their best lives through specialized occupational therapy services in Ghana. We provide professional, compassionate care tailored to your unique needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -42,7 +48,7 @@ export default function Home() {
               </Link>
               <Link 
                 to="/services" 
-                className="border border-white/20 hover:border-gold/50 text-white px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center"
+                className="border border-charcoal/20 hover:border-gold/50 text-charcoal px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center bg-white/60"
               >
                 Explore Services
               </Link>
@@ -78,13 +84,13 @@ export default function Home() {
 
             <motion.div 
               whileHover={{ y: -10 }}
-              className="group p-10 rounded-3xl bg-black text-white border border-white/5 hover:border-gold/20 transition-all"
+              className="group p-10 rounded-3xl bg-charcoal text-white border border-white/5 hover:border-gold/20 transition-all"
             >
               <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black mb-8">
                 <Brain size={32} />
               </div>
               <h3 className="text-2xl font-bold mb-4">Mental Health Occupational Therapy</h3>
-              <p className="text-white/60 mb-8 leading-relaxed">
+              <p className="text-white/75 mb-8 leading-relaxed">
                 Supporting individuals in managing their mental well-being through cognitive skills training, behavioral management, and community integration.
               </p>
               <Link to="/services" className="text-gold font-bold flex items-center gap-2 hover:gap-4 transition-all">
@@ -120,7 +126,7 @@ export default function Home() {
               </div>
               <Link 
                 to="/impact" 
-                className="inline-block bg-black text-white px-8 py-4 rounded-full font-bold hover:bg-stone-900 transition-all"
+                className="inline-block bg-charcoal text-white px-8 py-4 rounded-full font-bold hover:bg-charcoal-deep transition-all"
               >
                 View Our Initiatives
               </Link>
@@ -173,15 +179,15 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gold">
+      <section className="py-24 md:py-28 bg-gold-light rounded-tr-[4rem]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-black mb-8 tracking-tight">Ready to start your journey?</h2>
-          <p className="text-xl text-black/70 mb-10 max-w-2xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-charcoal mb-8 tracking-tight">Ready to start your journey?</h2>
+          <p className="text-xl text-charcoal/70 mb-10 max-w-2xl mx-auto">
             Take the first step towards a more independent and fulfilling life. Book your initial consultation today.
           </p>
           <Link 
             to="/appointment" 
-            className="inline-block bg-black text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-stone-900 transition-all shadow-xl"
+            className="inline-block bg-charcoal text-white px-10 py-5 rounded-full font-extrabold tracking-[0.04em] text-lg hover:bg-charcoal-deep transition-all shadow-xl"
           >
             Request Your Appointment Now
           </Link>

@@ -89,7 +89,7 @@ export default function Services() {
         <ServiceSection 
           title="Mental Health Occupational Therapy"
           icon={<Brain size={32} />}
-          color="bg-black"
+          color="bg-charcoal"
           items={mentalHealth}
           description="We support individuals with mental health conditions in reclaiming their roles and routines. Our approach focuses on practical strategies for daily living, vocational readiness, and social participation."
         />

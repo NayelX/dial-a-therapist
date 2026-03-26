@@ -160,9 +160,9 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Top Navigation */}
-      <nav className="bg-black text-white px-8 py-4 sticky top-0 z-[60] shadow-lg border-b border-gold/20">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-8">
+      <nav className="bg-charcoal text-white px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-[60] shadow-lg border-b border-gold/20">
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-3">
+          <div className="flex items-center gap-4 sm:gap-8 min-w-0">
             <div>
               <h2 className="text-xl font-bold text-gold tracking-tighter leading-none">ADMIN PANEL</h2>
               <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Dial-A-Therapist Ghana</p>
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
 
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-400/10 rounded-xl transition-all text-sm font-bold"
+            className="shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2 text-red-400 hover:bg-red-400/10 rounded-xl transition-all text-xs sm:text-sm font-bold"
           >
             <LogOut size={18} /> Logout
           </button>
@@ -183,10 +183,10 @@ export default function AdminDashboard() {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-8 md:p-12">
-        <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-12">
+      <div className="max-w-7xl mx-auto p-4 sm:p-8 md:p-12">
+        <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8 sm:mb-12">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Appointment Requests</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Appointment Requests</h1>
             <p className="text-stone-500 mt-2">Manage requests and view client intake data</p>
           </div>
           
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
                 onClick={() => setFilter(f)}
                 className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border ${
                   filter === f 
-                    ? 'bg-black text-white border-black shadow-md' 
+                    ? 'bg-charcoal text-white border-charcoal shadow-md' 
                     : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-100'
                 }`}
               >
@@ -211,7 +211,8 @@ export default function AdminDashboard() {
         <div className="space-y-6">
           {/* Table */}
           <div className="bg-white rounded-[2rem] border border-stone-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left border-collapse">
               <thead>
                 <tr className="bg-stone-50 border-b border-stone-200">
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Client</th>
@@ -271,12 +272,14 @@ export default function AdminDashboard() {
                         <button 
                           onClick={() => updateStatus(app.id, 'Confirmed')}
                           className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                          title="Confirm appointment"
                         >
                           <CheckCircle2 size={18} />
                         </button>
                         <button 
                           onClick={() => updateStatus(app.id, 'Cancelled')}
                           className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Cancel appointment"
                         >
                           <XCircle size={18} />
                         </button>
@@ -286,11 +289,12 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
-          <div className="bg-white rounded-[2rem] border border-stone-200 shadow-sm p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold tracking-tight">Community Impact Stories Upload</h2>
+          <div className="bg-white rounded-[2rem] border border-stone-200 shadow-sm p-4 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Community Impact Stories Upload</h2>
               <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
                 {impactStories.length} total
               </span>
@@ -314,6 +318,7 @@ export default function AdminDashboard() {
                   type="file"
                   accept="image/*"
                   multiple
+                  title="Upload story images"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []).slice(0, 3);
                     setImpactImageFiles(files);
@@ -373,7 +378,7 @@ export default function AdminDashboard() {
               <button
                 type="submit"
                 disabled={impactStatus === 'saving'}
-                className="md:col-span-2 inline-flex items-center justify-center gap-2 bg-black text-white px-5 py-3 rounded-xl font-bold disabled:opacity-50"
+                className="md:col-span-2 inline-flex items-center justify-center gap-2 bg-charcoal text-white px-5 py-3 rounded-xl font-bold disabled:opacity-50"
               >
                 <Plus size={16} /> {impactStatus === 'saving' ? 'Saving...' : editingImpactStoryId ? 'Update Impact Story' : 'Add Impact Story'}
               </button>
@@ -396,7 +401,7 @@ export default function AdminDashboard() {
                 <p className="text-stone-400 italic">No impact stories yet.</p>
               ) : (
                 impactStories.map((story) => (
-                  <div key={story.id} className="flex items-start justify-between gap-4 p-4 bg-stone-50 border border-stone-200 rounded-xl">
+                  <div key={story.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 bg-stone-50 border border-stone-200 rounded-xl">
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-sm">{story.title}</p>
@@ -407,7 +412,7 @@ export default function AdminDashboard() {
                       <p className="text-xs text-stone-500 mt-1">{story.date}</p>
                       <p className="text-xs text-stone-400 mt-1 line-clamp-2">{story.summary}</p>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 self-end sm:self-auto">
                       <button
                         onClick={() => handleEditImpactStory(story)}
                         className="p-2 text-stone-700 hover:bg-stone-200 rounded-lg"
@@ -443,24 +448,24 @@ export default function AdminDashboard() {
       {/* Appointment Details Modal */}
       <AnimatePresence>
         {selectedAppointment && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedAppointment(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-charcoal/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-4xl bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-4xl bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
             >
-              <div className="p-8 border-b border-stone-100 flex justify-between items-center bg-stone-50">
-                <div>
-                  <h2 className="text-2xl font-bold">{selectedAppointment.fullName}</h2>
-                  <p className="text-stone-500">Request ID: {selectedAppointment.id}</p>
+              <div className="p-4 sm:p-8 border-b border-stone-100 flex justify-between items-start sm:items-center gap-3 bg-stone-50">
+                <div className="min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate">{selectedAppointment.fullName}</h2>
+                  <p className="text-stone-500 text-xs sm:text-sm break-all">Request ID: {selectedAppointment.id}</p>
                 </div>
                 <button 
                   onClick={() => setSelectedAppointment(null)}
@@ -470,9 +475,9 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="flex-grow overflow-y-auto p-8 space-y-12">
+              <div className="flex-grow overflow-y-auto p-4 sm:p-8 space-y-8 sm:space-y-12">
                 {/* Status Banner */}
-                <div className={`p-6 rounded-2xl flex items-center justify-between ${
+                <div className={`p-4 sm:p-6 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
                   selectedAppointment.status === 'Pending' ? 'bg-amber-50 border border-amber-100' :
                   selectedAppointment.status === 'Confirmed' ? 'bg-emerald-50 border border-emerald-100' :
                   'bg-rose-50 border border-rose-100'
@@ -492,16 +497,18 @@ export default function AdminDashboard() {
                       <p className="font-bold text-lg">{selectedAppointment.status}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                    <div className="flex w-full sm:w-auto gap-2">
                     <button 
                       onClick={() => updateStatus(selectedAppointment.id, 'Confirmed')}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-all"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-all"
+                      title="Confirm appointment"
                     >
                       Confirm
                     </button>
                     <button 
                       onClick={() => updateStatus(selectedAppointment.id, 'Cancelled')}
-                      className="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold hover:bg-rose-700 transition-all"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold hover:bg-rose-700 transition-all"
+                      title="Cancel appointment"
                     >
                       Cancel
                     </button>
@@ -591,7 +598,7 @@ export default function AdminDashboard() {
                   </section>
                 )}
 
-                <div className="pt-8 border-t border-stone-100 flex items-center justify-between text-xs text-stone-400">
+                <div className="pt-8 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-stone-400">
                   <div className="flex items-center gap-2">
                     <ShieldCheck size={14} className="text-emerald-500" />
                     Consent Form Signed & Verified

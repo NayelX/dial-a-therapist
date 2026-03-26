@@ -38,7 +38,7 @@ export default function Contact() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           {/* Contact Info */}
           <div className="lg:col-span-4 space-y-8">
-            <div className="p-8 rounded-[2rem] bg-black text-white">
+            <div className="p-8 rounded-[2rem] bg-charcoal text-white">
               <h3 className="text-2xl font-bold mb-8 text-gold">Contact Information</h3>
               <div className="space-y-8">
                 <div className="flex items-start gap-4">
@@ -139,7 +139,7 @@ export default function Contact() {
                   <p className="text-stone-600 mb-8">Thank you for contacting us. We will get back to you as soon as possible.</p>
                   <button 
                     onClick={() => setStatus('idle')}
-                    className="bg-black text-white px-8 py-4 rounded-full font-bold"
+                    className="bg-charcoal text-white px-8 py-4 rounded-full font-bold"
                   >
                     Send Another Message
                   </button>
@@ -195,7 +195,7 @@ export default function Contact() {
                   <button 
                     disabled={status === 'loading'}
                     type="submit"
-                    className="w-full bg-black text-white py-5 rounded-2xl font-bold text-lg hover:bg-stone-900 transition-all shadow-xl disabled:opacity-50"
+                    className="w-full bg-charcoal text-white py-5 rounded-2xl font-bold text-lg hover:bg-charcoal-deep transition-all shadow-xl disabled:opacity-50"
                   >
                     {status === 'loading' ? 'Sending...' : 'Send Message'}
                   </button>

@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 
 export default function NotFound() {
   return (
-    <div className="min-h-[70vh] bg-black text-white flex items-center justify-center px-4 py-20">
+    <div className="min-h-[70vh] bg-charcoal text-white flex items-center justify-center px-4 py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

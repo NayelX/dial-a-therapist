@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -35,12 +35,33 @@ import Contact from './pages/Contact';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
+import { api } from './services/api';
 
 // Components
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const location = useLocation();
-  const isAdmin = location.pathname.startsWith('/admin');
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const isScrollingUp = currentScrollY < lastScrollY;
+
+      if (currentScrollY <= 24) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(isScrollingUp);
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -52,7 +73,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-black text-white sticky top-0 z-50 border-b border-gold/20">
+    <nav className={`fixed top-0 left-0 right-0 z-50 border-b border-gold/20 bg-charcoal/95 text-white backdrop-blur-md transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20">
           <div className="flex items-center">
@@ -99,7 +120,7 @@ const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-black border-t border-gold/10 overflow-hidden"
+            className="md:hidden bg-charcoal border-t border-gold/10 overflow-hidden"
           >
             <div className="px-4 pt-2 pb-6 space-y-1">
               {navLinks.map((link) => (
@@ -128,16 +149,25 @@ const Navbar = () => {
 };
 
 const Footer = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  const handleFooterLogout = async () => {
+    await api.logout();
+    navigate('/login');
+  };
+
   return (
-    <footer className="bg-black text-white pt-16 pb-8 border-t border-gold/20">
+    <footer className="bg-charcoal text-white pt-16 pb-8 border-t border-gold/20 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex flex-col mb-6">
-              <span className="text-xl font-bold tracking-tighter text-gold">DIAL-A-THERAPIST GHANA</span>
+              <span className="text-xl font-bold tracking-tighter text-gold-light">DIAL-A-THERAPIST GHANA</span>
               <span className="text-[10px] uppercase tracking-[0.2em] text-gold-light/80">Your care is our care</span>
             </Link>
-            <p className="text-white/60 text-sm leading-relaxed">
+            <p className="text-white/75 text-sm leading-relaxed">
               Professional Occupational Therapy services dedicated to improving quality of life through personalized care and community impact.
             </p>
           </div>
@@ -167,11 +197,11 @@ const Footer = () => {
                 <MapPin size={16} className="text-gold" />
                 <span>Accra, Ghana</span>
               </li>
-              <li className="flex items-center gap-4 pt-4">
-                <a href="https://facebook.com/DATGhana" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-gold transition-colors">
+              <li className="flex items-center gap-6 pt-4">
+                <a href="https://facebook.com/DATGhana" target="_blank" rel="noopener noreferrer" className="px-1 text-white/40 hover:text-gold transition-colors">
                   <Facebook size={20} />
                 </a>
-                <a href="https://instagram.com/dialatherapistgh" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-gold transition-colors">
+                <a href="https://instagram.com/dialatherapistgh" target="_blank" rel="noopener noreferrer" className="px-1 text-white/40 hover:text-gold transition-colors">
                   <Instagram size={20} />
                 </a>
               </li>
@@ -202,9 +232,19 @@ const Footer = () => {
             &copy; {new Date().getFullYear()} Dial-a-Therapist Ghana. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <Link to="/login" className="text-white/40 hover:text-gold text-xs flex items-center gap-1">
-              <LogIn size={12} /> Admin Login
-            </Link>
+            {isAdminRoute ? (
+              <button
+                type="button"
+                onClick={handleFooterLogout}
+                className="text-white/40 hover:text-gold text-xs flex items-center gap-1 transition-colors"
+              >
+                <LogOut size={12} /> Logout
+              </button>
+            ) : (
+              <Link to="/login" className="text-white/40 hover:text-gold text-xs flex items-center gap-1">
+                <LogIn size={12} /> Admin Login
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -226,7 +266,7 @@ const WhatsAppButton = () => {
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="bg-[#25D366] text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform duration-300"
+        className="bg-[#3a9b7a] hover:bg-[#2f8669] text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300"
       >
         <MessageCircle size={32} />
       </a>
@@ -234,28 +274,37 @@ const WhatsAppButton = () => {
   );
 };
 
+const AppLayout = () => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (
+    <div className="min-h-screen flex flex-col selection:bg-gold/30">
+      {!isAdminRoute && <Navbar />}
+      <main className={`flex-grow ${isAdminRoute ? '' : 'pt-20'}`}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/appointment" element={<AppointmentRequest />} />
+          <Route path="/impact" element={<CommunityImpact />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin/*" element={<AdminDashboard />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+      <Footer />
+      <WhatsAppButton />
+    </div>
+  );
+};
+
 export default function App() {
   return (
     <Router>
-      <div className="min-h-screen flex flex-col selection:bg-gold/30">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/appointment" element={<AppointmentRequest />} />
-            <Route path="/impact" element={<CommunityImpact />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin/*" element={<AdminDashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-        <Footer />
-        <WhatsAppButton />
-      </div>
+      <AppLayout />
     </Router>
   );
 }

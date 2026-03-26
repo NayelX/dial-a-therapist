@@ -71,7 +71,7 @@ export default function CommunityImpact() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative py-24 md:py-32 bg-black text-white overflow-hidden">
+      <section className="relative py-24 md:py-32 bg-charcoal text-white overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <img 
             src="https://picsum.photos/seed/community/1920/1080?grayscale" 
@@ -137,7 +137,7 @@ export default function CommunityImpact() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <div className="absolute -bottom-8 -left-8 bg-gold text-black p-8 rounded-3xl shadow-xl max-w-xs hidden md:block">
+              <div className="absolute -bottom-8 -left-8 bg-gold-light text-charcoal p-8 rounded-3xl shadow-xl max-w-xs hidden md:block">
                 <p className="text-4xl font-bold mb-1 tracking-tighter">100%</p>
                 <p className="text-sm font-bold uppercase tracking-wider opacity-80">Direct Impact</p>
                 <p className="text-xs mt-2 leading-relaxed">Every initiative is personally managed by our clinical team to ensure maximum benefit.</p>
@@ -177,7 +177,7 @@ export default function CommunityImpact() {
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
+                    <span className="px-3 py-1 rounded-full bg-charcoal/60 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
                       {story.date}
                     </span>
                   </div>
@@ -191,7 +191,7 @@ export default function CommunityImpact() {
                           key={`${story.id}-thumb-${index}`}
                           type="button"
                           onClick={() => setActiveImageIndexes((prev) => ({ ...prev, [story.id]: index }))}
-                          className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${activeIndex === index ? 'border-black' : 'border-stone-200'}`}
+                          className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${activeIndex === index ? 'border-charcoal' : 'border-stone-200'}`}
                           title={`View image ${index + 1}`}
                         >
                           <img
@@ -253,7 +253,7 @@ export default function CommunityImpact() {
 
                     <a 
                       href="/contact"
-                      className="w-full py-4 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-stone-900 transition-all text-center block"
+                      className="w-full py-4 bg-charcoal text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-charcoal-deep transition-all text-center block"
                     >
                       Support This Initiative
                     </a>
@@ -278,7 +278,7 @@ export default function CommunityImpact() {
       </section>
 
       {/* Facebook CTA Section */}
-      <section className="py-24 bg-black text-white text-center relative overflow-hidden">
+      <section className="py-24 bg-charcoal-soft text-white text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
         <div className="max-w-4xl mx-auto px-4 relative z-10">
           <Facebook size={48} className="text-gold mx-auto mb-8" />
@@ -287,7 +287,7 @@ export default function CommunityImpact() {
             We regularly share updates, success stories, and upcoming outreach events on our social media. Join our community to stay informed and see the impact of your support.
           </p>
           <a 
-            href="https://facebook.com/dialatherapistgh" 
+            href="https://facebook.com/DATGhana" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-gold text-black px-10 py-5 rounded-full font-bold text-lg hover:bg-gold-dark transition-all shadow-2xl transform hover:scale-105"
