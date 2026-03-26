@@ -252,12 +252,14 @@ export default function CommunityImpact() {
                       )}
                     </AnimatePresence>
 
-                    <Link 
-                      to="/contact"
-                      className="w-full py-4 bg-charcoal text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-charcoal-deep transition-all text-center block"
-                    >
-                      Support This Initiative
-                    </Link>
+                    <div className="flex justify-center">
+                      <Link 
+                        to="/contact"
+                        className="max-w-xs w-full py-4 bg-charcoal text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-charcoal-deep transition-all text-center block"
+                      >
+                        Support This Initiative
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </motion.div>

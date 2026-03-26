@@ -253,8 +253,8 @@ const Footer = () => {
 };
 
 const WhatsAppButton = () => {
-  const message = encodeURIComponent("Hello, I would like to inquire about therapy services.");
-  const whatsappUrl = `https://wa.me/233599309776?text=${message}`;
+  const message = encodeURIComponent("Hello OT Mildred, I would like to inquire about therapy services.");
+  const whatsappUrl = `https://wa.me/233507659481?text=${message}`;
 
   return (
     <div className="fixed bottom-8 right-8 z-50 group">

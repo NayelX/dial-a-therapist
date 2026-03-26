@@ -39,7 +39,7 @@ export default function Home() {
             <p className="text-xl text-charcoal/80 mb-10 leading-relaxed">
               Empowering individuals to live their best lives through specialized occupational therapy services in Ghana. We provide professional, compassionate care tailored to your unique needs.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 max-w-md sm:max-w-none">
               <Link 
                 to="/appointment" 
                 className="bg-gold hover:bg-gold-dark text-black px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center gap-2"

@@ -74,7 +74,7 @@ export default function AppointmentRequest() {
           </p>
           <button 
             onClick={() => setStatus('idle')}
-            className="w-full bg-charcoal text-white py-4 rounded-full font-bold hover:bg-charcoal-deep transition-all"
+            className="max-w-sm mx-auto block bg-charcoal text-white px-8 py-4 rounded-full font-bold hover:bg-charcoal-deep transition-all"
           >
             Return to Form
           </button>
@@ -257,7 +257,7 @@ export default function AppointmentRequest() {
                 <h2 className="text-2xl font-bold">2. Appointment Details</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Service Type</label>
                   <select 
@@ -265,7 +265,7 @@ export default function AppointmentRequest() {
                     title="Service Type"
                     value={formData.serviceType}
                     onChange={(e) => setFormData({...formData, serviceType: e.target.value})}
-                    className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    className="w-full px-4 py-3 sm:py-4 text-base bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
                   >
                     <option value="">Select a service</option>
                     <option value="Pediatrics OT">Pediatrics Occupational Therapy</option>
@@ -281,7 +281,7 @@ export default function AppointmentRequest() {
                     title="Preferred Date"
                     value={formData.preferredDate}
                     onChange={(e) => setFormData({...formData, preferredDate: e.target.value})}
-                    className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    className="w-full px-4 py-3 sm:py-4 text-base bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all appearance-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -292,7 +292,7 @@ export default function AppointmentRequest() {
                     title="Preferred Time"
                     value={formData.preferredTime}
                     onChange={(e) => setFormData({...formData, preferredTime: e.target.value})}
-                    className="w-full px-4 py-4 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    className="w-full px-4 py-3 sm:py-4 text-base bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all appearance-none"
                   />
                 </div>
               </div>
@@ -309,13 +309,15 @@ export default function AppointmentRequest() {
               </div>
             </section>
 
-            <button 
-              disabled={status === 'loading'}
-              type="submit"
-              className="w-full bg-gold text-black py-6 rounded-2xl font-bold text-xl hover:bg-gold-dark transition-all shadow-xl disabled:opacity-50"
-            >
-              {status === 'loading' ? 'Processing...' : 'Submit Booking Request'}
-            </button>
+            <div className="flex justify-center">
+              <button 
+                disabled={status === 'loading'}
+                type="submit"
+                className="max-w-sm w-full bg-gold text-black py-6 rounded-2xl font-bold text-xl hover:bg-gold-dark transition-all shadow-xl disabled:opacity-50"
+              >
+                {status === 'loading' ? 'Processing...' : 'Submit Booking Request'}
+              </button>
+            </div>
             
             {status === 'error' && (
               <p className="text-red-500 text-center font-bold">Something went wrong. Please try again.</p>

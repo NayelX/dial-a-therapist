@@ -192,13 +192,15 @@ export default function Contact() {
                       placeholder="Tell us more about your inquiry..."
                     ></textarea>
                   </div>
-                  <button 
-                    disabled={status === 'loading'}
-                    type="submit"
-                    className="w-full bg-charcoal text-white py-5 rounded-2xl font-bold text-lg hover:bg-charcoal-deep transition-all shadow-xl disabled:opacity-50"
-                  >
-                    {status === 'loading' ? 'Sending...' : 'Send Message'}
-                  </button>
+                  <div className="flex justify-center">
+                    <button 
+                      disabled={status === 'loading'}
+                      type="submit"
+                      className="max-w-sm w-full bg-charcoal text-white py-5 rounded-2xl font-bold text-lg hover:bg-charcoal-deep transition-all shadow-xl disabled:opacity-50"
+                    >
+                      {status === 'loading' ? 'Sending...' : 'Send Message'}
+                    </button>
+                  </div>
                 </form>
               )}
             </motion.div>
