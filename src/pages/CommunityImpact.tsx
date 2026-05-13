@@ -73,14 +73,7 @@ export default function CommunityImpact() {
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="relative py-24 md:py-32 bg-charcoal text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <img 
-            src="https://picsum.photos/seed/community/1920/1080?grayscale" 
-            alt="Community Background" 
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        </div>
+        <div className="absolute inset-0 bg-black opacity-60" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
