@@ -4,6 +4,7 @@ import { Heart, Users, Gift, Info, ExternalLink, Quote, Facebook, ChevronRight, 
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { ImpactStory } from '../types';
+import { SITE_CONFIG } from '../config/site';
 
 const fallbackImpactStories: ImpactStory[] = [
   {
@@ -19,7 +20,7 @@ const fallbackImpactStories: ImpactStory[] = [
     quote: "Seeing Kofi hold a pencil for the first time was a miracle we never thought possible.",
     testimonialAuthor: "Kofi's Mother",
     date: "October 2025 • Sponsored Care",
-    fullStoryUrl: "https://facebook.com/dialatherapistgh",
+    fullStoryUrl: SITE_CONFIG.facebookUrl,
     published: true,
     createdAt: new Date().toISOString(),
   },
@@ -35,7 +36,7 @@ const fallbackImpactStories: ImpactStory[] = [
     quote: "The sensory tools have transformed our classroom into a calm, productive space for our students.",
     testimonialAuthor: "Head Teacher, Grace Special School",
     date: "January 2026 • School Support",
-    fullStoryUrl: "https://facebook.com/dialatherapistgh",
+    fullStoryUrl: SITE_CONFIG.facebookUrl,
     published: true,
     createdAt: new Date().toISOString(),
   },
@@ -45,7 +46,7 @@ const fallbackImpactStories: ImpactStory[] = [
     image: "https://picsum.photos/seed/community-outreach/800/600",
     summary: "Our team conducted a free community workshop in Kumasi, reaching over 150 parents and educators. We focused on early identification of developmental delays and reducing the stigma around mental health.",
     date: "March 2026 • Community Outreach",
-    fullStoryUrl: "https://facebook.com/dialatherapistgh",
+    fullStoryUrl: SITE_CONFIG.facebookUrl,
     published: true,
     createdAt: new Date().toISOString(),
   }
@@ -283,7 +284,7 @@ export default function CommunityImpact() {
             We regularly share updates, success stories, and upcoming outreach events on our social media. Join our community to stay informed and see the impact of your support.
           </p>
           <a 
-            href="https://facebook.com/DATGhana" 
+            href={SITE_CONFIG.facebookUrl} 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-gold text-black px-10 py-5 rounded-full font-bold text-lg hover:bg-gold-dark transition-all shadow-2xl transform hover:scale-105"

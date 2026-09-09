@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Heart, Brain, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SITE_CONFIG } from '../config/site';
 
 const ServiceSection = ({ title, icon, color, items, description }: any) => (
   <motion.div 
@@ -104,7 +105,7 @@ export default function Services() {
               Contact us for a brief consultation. We'll help you understand how occupational therapy can benefit you or your loved one.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a href="tel:+233240000000" className="bg-gold text-black px-8 py-4 rounded-full font-bold hover:bg-gold-dark transition-all">
+              <a href={`tel:${SITE_CONFIG.phone.e164}`} className="bg-gold text-black px-8 py-4 rounded-full font-bold hover:bg-gold-dark transition-all">
                 Call Us Now
               </a>
               <Link to="/contact" className="border border-white/20 px-8 py-4 rounded-full font-bold hover:bg-white/10 transition-all">

@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { Phone, Mail, MapPin, MessageCircle, Send, Clock, Facebook, Instagram } from 'lucide-react';
 import { useState, FormEvent } from 'react';
 import { api } from '../services/api';
+import { SITE_CONFIG } from '../config/site';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -47,7 +48,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-1">Call Us</p>
-                    <p className="font-bold">+233 (0) 55 298 9900</p>
+                    <a href={`tel:${SITE_CONFIG.phone.e164}`} className="font-bold hover:text-gold transition-colors">{SITE_CONFIG.phone.display}</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -56,7 +57,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-1">Email Us</p>
-                    <p className="font-bold">info@dialatherapistgh.com</p>
+                    <a href={`mailto:${SITE_CONFIG.email}`} className="font-bold hover:text-gold transition-colors">{SITE_CONFIG.email}</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -65,7 +66,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-1">Visit Us</p>
-                    <p className="font-bold">Accra, Ghana</p>
+                    <p className="font-bold">{SITE_CONFIG.address}</p>
                   </div>
                 </div>
               </div>
@@ -74,7 +75,7 @@ export default function Contact() {
                 <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-4">Follow Us</p>
                 <div className="flex gap-4">
                   <a 
-                    href="https://facebook.com/dialatherapistgh" 
+                    href={SITE_CONFIG.facebookUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="w-12 h-12 bg-gold/10 rounded-xl flex items-center justify-center text-gold hover:bg-gold hover:text-black transition-all"
@@ -82,7 +83,7 @@ export default function Contact() {
                     <Facebook size={20} />
                   </a>
                   <a 
-                    href="https://instagram.com/dialatherapistgh" 
+                    href={SITE_CONFIG.instagramUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="w-12 h-12 bg-gold/10 rounded-xl flex items-center justify-center text-gold hover:bg-gold hover:text-black transition-all"
@@ -100,21 +101,21 @@ export default function Contact() {
               <ul className="space-y-4 text-sm">
                 <li className="flex justify-between border-b border-stone-200 pb-2">
                   <span className="text-stone-500">Monday - Friday</span>
-                  <span className="font-bold">8:00 AM - 5:00 PM</span>
+                  <span className="font-bold">{SITE_CONFIG.businessHours.monToFri}</span>
                 </li>
                 <li className="flex justify-between border-b border-stone-200 pb-2">
                   <span className="text-stone-500">Saturday</span>
-                  <span className="font-bold">9:00 AM - 2:00 PM</span>
+                  <span className="font-bold">{SITE_CONFIG.businessHours.saturday}</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="text-stone-500">Sunday</span>
-                  <span className="font-bold text-gold">Closed</span>
+                  <span className="font-bold text-gold">{SITE_CONFIG.businessHours.sunday}</span>
                 </li>
               </ul>
             </div>
 
             <a 
-              href="https://wa.me/233240000000"
+              href={SITE_CONFIG.whatsappBaseUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-3 w-full bg-[#25D366] text-white py-5 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg"
