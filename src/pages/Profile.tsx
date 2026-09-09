@@ -1,9 +1,17 @@
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Award, Heart, Users, ShieldCheck, Star } from 'lucide-react';
+import { Award, Users, ShieldCheck, Star, Book } from 'lucide-react';
 import profileImage from '../assets/images/profile.jpg';
+import { fadeUpVariant } from '../lib/motion';
+import { usePageSEO } from '../hooks/usePageSEO';
 
 export default function Profile() {
+  usePageSEO({
+    title: 'Lead Therapist & Clinical Profile',
+    description: 'Meet our Lead Occupational Therapist and founder at Dial-A-Therapist Ghana. Certified clinical expertise, specialized certifications, and dedicated patient advocacy.',
+    canonicalPath: '/profile',
+  });
+
   return (
     <div className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -11,13 +19,14 @@ export default function Profile() {
           {/* Sidebar / Photo */}
           <div className="xl:col-span-4 relative xl:sticky xl:top-32">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative rounded-l-[3rem] rounded-tr-[1.75rem] rounded-br-[2.5rem] overflow-hidden shadow-2xl aspect-[4/5]"
+              variants={fadeUpVariant}
+              initial="hidden"
+              animate="show"
+              className="relative rounded-l-[3rem] rounded-tr-[1.75rem] rounded-br-[2.5rem] overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] aspect-[4/5]"
             >
               <img 
                 src={profileImage}
-                alt="Lead Therapist" 
+                alt="OT Mildred A. Wiredu - Lead Occupational Therapist at Dial-A-Therapist Ghana" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
@@ -48,9 +57,9 @@ export default function Profile() {
           {/* Main Content */}
           <div className="xl:col-span-8">
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              variants={fadeUpVariant}
+              initial="hidden"
+              animate="show"
             >
               <h1 className="text-5xl font-bold tracking-tighter mb-8">Professional <span className="text-gold">Profile</span></h1>
               
@@ -75,7 +84,7 @@ export default function Profile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
                   <div className="p-8 rounded-3xl bg-charcoal text-white">
                     <h4 className="text-gold font-bold mb-4 flex items-center gap-2">
-                      <Heart size={20} /> Education
+                      <Book size={20} /> Education
                     </h4>
                     <ul className="space-y-3 text-sm text-white/70">
                       <li>• Occupational Therapy Training - University of the Witwatersrand, South Africa</li>

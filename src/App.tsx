@@ -1,9 +1,10 @@
-﻿import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
 // Layout Components
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { WhatsAppFloat } from './components/layout/WhatsAppFloat';
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import Home from './pages/Home';
@@ -19,12 +20,13 @@ import NotFound from './pages/NotFound';
 
 const AppLayout = () => {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAuthOrAdmin = location.pathname.startsWith('/admin') || location.pathname === '/login';
 
   return (
     <div className="min-h-screen flex flex-col selection:bg-gold/30">
-      {!isAdminRoute && <Navbar />}
-      <main className={`flex-grow ${isAdminRoute ? '' : 'pt-20'}`}>
+      <ScrollToTop />
+      {!isAuthOrAdmin && <Navbar />}
+      <main className={`flex-grow ${isAuthOrAdmin ? '' : 'pt-20'}`}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -38,8 +40,8 @@ const AppLayout = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {!isAdminRoute && <Footer />}
-      {!isAdminRoute && <WhatsAppFloat />}
+      {!isAuthOrAdmin && <Footer />}
+      {!isAuthOrAdmin && <WhatsAppFloat />}
     </div>
   );
 };

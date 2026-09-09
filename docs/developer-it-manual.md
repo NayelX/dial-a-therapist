@@ -4,17 +4,30 @@
 This document is for developers, technical maintainers, and IT operations personnel.
 
 ## 2. Architecture Overview
-- Frontend: React + Vite + TypeScript
-- Routing: React Router
-- Backend model: Frontend-only app using Supabase services
-- Data/Auth/Storage: Supabase (Postgres, Auth, Storage)
+- Frontend: React 19 + Vite 6 + TypeScript + Tailwind CSS
+- Routing: React Router v6 with `vercel.json` rewrite (`/(.*)` -> `/index.html`) for Single Page Application (SPA) routing fallback
+- State & Layout: Local React state, shared motion variants (`src/lib/motion.ts`), accessible shared components (`Button`, `FileDropzone`, `SkeletonLoader`)
+- Backend model: Frontend-only client app connecting to Supabase cloud services
+- Data/Auth/Storage: Supabase (Postgres, Row Level Security, Auth, Storage)
 
 ## 3. Project Structure (Key Areas)
-- src/pages: Route-level pages
-- src/services/api.ts: Data access layer and Supabase interactions
-- src/services/supabase.ts: Client initialization and env-based config
-- src/types/index.ts: Shared frontend domain types
-- docs/supabase-setup.sql: DB schema, RLS policies, storage policies
+- `src/components/common/`: Shared UI components (`Button.tsx`, `FileDropzone.tsx`, `SkeletonLoader.tsx`)
+- `src/components/layout/`: Global layout components (`Navbar.tsx`, `Footer.tsx`, `WhatsAppFloat.tsx`)
+- `src/config/site.ts`: Centralized site contact and company details (`SITE_CONFIG`)
+- `src/lib/motion.ts`: Standardized Framer Motion transitions and animation variants
+- `src/pages/`: Route-level pages:
+  - `Home.tsx`: Hero and core service highlights
+  - `About.tsx`: Mission, vision, and clinic overview
+  - `Services.tsx`: Pediatrics & Mental Health OT details with responsive image order
+  - `AppointmentRequest.tsx`: 3-step client booking wizard with honeypot bot deterrence
+  - `Contact.tsx`: Inquiry form with honeypot protection
+  - `CommunityImpact.tsx`: Public impact stories with SkeletonLoader fallback
+  - `AdminDashboard.tsx`: Tabbed admin console (Appointments, Messages, Impact Stories)
+- `src/services/api.ts`: Data access layer and Supabase interactions
+- `src/services/supabase.ts`: Client initialization and env-based config
+- `src/types/index.ts`: Shared frontend domain types
+- `vercel.json`: Vercel SPA routing rewrite configuration
+- `docs/supabase-setup.sql`: DB schema, RLS policies, storage policies
 
 ## 4. Environment Setup
 Required environment variables:

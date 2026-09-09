@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { ImpactStory } from '../types';
 import { SITE_CONFIG } from '../config/site';
+import { SkeletonLoader } from '../components/common/SkeletonLoader';
 
 const fallbackImpactStories: ImpactStory[] = [
   {
@@ -52,22 +53,47 @@ const fallbackImpactStories: ImpactStory[] = [
   }
 ];
 
+import { usePageSEO } from '../hooks/usePageSEO';
+
 export default function CommunityImpact() {
+  usePageSEO({
+    title: 'Community Impact & Outreach Initiatives',
+    description: 'Explore our sponsored occupational therapy sessions, special school sensory equipment donations, and community mental health workshops across Ghana.',
+    canonicalPath: '/impact',
+  });
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeImageIndexes, setActiveImageIndexes] = useState<Record<string, number>>({});
-  const [impactStories, setImpactStories] = useState<ImpactStory[]>(fallbackImpactStories);
+  const [impactStories, setImpactStories] = useState<ImpactStory[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    let isMounted = true;
     (async () => {
       try {
         const stories = await api.getImpactStoriesPublic();
-        if (stories.length > 0) {
-          setImpactStories(stories);
+        if (isMounted) {
+          if (stories.length > 0) {
+            setImpactStories(stories);
+          } else {
+            setImpactStories(fallbackImpactStories);
+          }
         }
       } catch (error) {
         console.error(error);
+        if (isMounted) {
+          setImpactStories(fallbackImpactStories);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -81,6 +107,7 @@ export default function CommunityImpact() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-3xl"
           >
+
             <span className="inline-block px-4 py-1 rounded-full bg-gold/20 text-gold text-xs font-bold uppercase tracking-widest mb-6 border border-gold/30">
               Our Mission in Action
             </span>
@@ -126,8 +153,8 @@ export default function CommunityImpact() {
             <div className="relative">
               <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="https://picsum.photos/seed/outreach-1/800/800" 
-                  alt="Outreach Activity" 
+                  src="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&q=80&w=1000" 
+                  alt="Community Outreach Activity" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
@@ -150,116 +177,120 @@ export default function CommunityImpact() {
             <p className="text-stone-500 max-w-2xl mx-auto">Real stories of change and progress from the communities we support.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {impactStories.map((story) => {
+          {isLoading ? (
+            <SkeletonLoader count={3} />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {impactStories.map((story) => {
                 const storyImages = story.images?.length ? story.images.slice(0, 3) : [story.image];
                 const activeIndex = Math.min(activeImageIndexes[story.id] || 0, storyImages.length - 1);
                 const activeImage = storyImages[activeIndex];
 
                 return (
-              <motion.div 
-                key={story.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="bg-white rounded-[2rem] border border-stone-100 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col"
-              >
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  <img 
-                    src={activeImage} 
-                    alt={story.title} 
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 rounded-full bg-charcoal/60 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
-                      {story.date}
-                    </span>
-                  </div>
-                </div>
-
-                {storyImages.length > 1 && (
-                  <div className="px-4 pt-4">
-                    <div className="flex gap-2">
-                      {storyImages.map((image, index) => (
-                        <button
-                          key={`${story.id}-thumb-${index}`}
-                          type="button"
-                          onClick={() => setActiveImageIndexes((prev) => ({ ...prev, [story.id]: index }))}
-                          className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${activeIndex === index ? 'border-charcoal' : 'border-stone-200'}`}
-                          title={`View image ${index + 1}`}
-                        >
-                          <img
-                            src={image}
-                            alt={`${story.title} ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                        </button>
-                      ))}
+                  <motion.div 
+                    key={story.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="bg-white rounded-[2rem] border border-stone-200/80 hover:border-gold/40 overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all flex flex-col"
+                  >
+                    <div className="aspect-[4/3] relative overflow-hidden">
+                      <img 
+                        src={activeImage} 
+                        alt={story.title} 
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute top-4 left-4">
+                        <span className="px-3 py-1 rounded-full bg-charcoal/60 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
+                          {story.date}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
-                
-                <div className="p-8 flex-grow flex flex-col">
-                  <h3 className="text-xl font-bold mb-4 leading-tight">{story.title}</h3>
-                  <p className="text-stone-600 text-sm leading-relaxed mb-6 flex-grow">
-                    {story.summary}
-                  </p>
 
-                  {story.quote && (
-                    <div className="mb-6 p-4 bg-gold/5 rounded-xl border-l-2 border-gold italic">
-                      <Quote size={16} className="text-gold mb-2" />
-                      <p className="text-xs text-stone-700 mb-2">"{story.quote}"</p>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">— {story.testimonialAuthor}</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <button 
-                      onClick={() => setExpandedId(expandedId === story.id ? null : story.id)}
-                      className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-widest text-stone-400 hover:text-gold transition-colors group"
-                    >
-                      {expandedId === story.id ? "Show Less" : "Read More"}
-                      <ChevronRight size={14} className={`transition-transform ${expandedId === story.id ? 'rotate-90' : ''}`} />
-                    </button>
-
-                    <AnimatePresence>
-                      {expandedId === story.id && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="pt-4 pb-2">
-                            <a 
-                              href={story.fullStoryUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 text-xs font-bold text-gold hover:underline"
+                    {storyImages.length > 1 && (
+                      <div className="px-4 pt-4">
+                        <div className="flex gap-2">
+                          {storyImages.map((image, index) => (
+                            <button
+                              key={`${story.id}-thumb-${index}`}
+                              type="button"
+                              onClick={() => setActiveImageIndexes((prev) => ({ ...prev, [story.id]: index }))}
+                              className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${activeIndex === index ? 'border-charcoal' : 'border-stone-200'}`}
+                              title={`View image ${index + 1}`}
                             >
-                              View full story on Facebook <ExternalLink size={12} />
-                            </a>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                              <img
+                                src={image}
+                                alt={`${story.title} ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="p-8 flex-grow flex flex-col">
+                      <h3 className="text-xl font-bold mb-4 leading-tight">{story.title}</h3>
+                      <p className="text-stone-600 text-sm leading-relaxed mb-6 flex-grow">
+                        {story.summary}
+                      </p>
 
-                    <div className="flex justify-center">
-                      <Link 
-                        to="/contact"
-                        className="max-w-xs w-full py-4 bg-charcoal text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-charcoal-deep transition-all text-center block"
-                      >
-                        Support This Initiative
-                      </Link>
+                      {story.quote && (
+                        <div className="mb-6 p-4 bg-gold/5 rounded-xl border-l-2 border-gold italic">
+                          <Quote size={16} className="text-gold mb-2" />
+                          <p className="text-xs text-stone-700 mb-2">"{story.quote}"</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">— {story.testimonialAuthor}</p>
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <button 
+                          onClick={() => setExpandedId(expandedId === story.id ? null : story.id)}
+                          className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-widest text-stone-400 hover:text-gold transition-colors group"
+                        >
+                          {expandedId === story.id ? "Show Less" : "Read More"}
+                          <ChevronRight size={14} className={`transition-transform ${expandedId === story.id ? 'rotate-90' : ''}`} />
+                        </button>
+
+                        <AnimatePresence>
+                          {expandedId === story.id && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="pt-4 pb-2">
+                                <a 
+                                  href={story.fullStoryUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 text-xs font-bold text-gold hover:underline"
+                                >
+                                  View full story on Facebook <ExternalLink size={12} />
+                                </a>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="flex justify-center">
+                          <Link 
+                            to="/contact"
+                            className="max-w-xs w-full py-4 bg-charcoal text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-charcoal-deep transition-all text-center block"
+                          >
+                            Support This Initiative
+                          </Link>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </motion.div>
+                  </motion.div>
                 );
               })}
-          </div>
+            </div>
+          )}
 
           {/* Transparency Disclaimer */}
           <div className="mt-20 p-8 rounded-3xl bg-stone-50 border border-stone-200 flex items-start gap-4 max-w-4xl mx-auto">

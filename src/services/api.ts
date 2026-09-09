@@ -1,4 +1,4 @@
-import { Appointment, ImpactStory } from "../types";
+import { Appointment, ImpactStory, ContactMessage } from "../types";
 import { ADMIN_EMAIL, IMPACT_STORY_BUCKET, supabase } from "./supabase";
 
 type ContactPayload = {
@@ -17,6 +17,16 @@ type ImpactStoryUpsertInput = Omit<ImpactStoryPayload, "image" | "imagePath" | "
 	images?: string[];
 	imagePath?: string;
 	imagePaths?: string[];
+};
+
+type ContactDbRow = {
+	id: string;
+	name: string;
+	email: string;
+	subject: string;
+	message: string;
+	read?: boolean | null;
+	created_at: string;
 };
 
 type AppointmentDbRow = {
@@ -55,6 +65,16 @@ type ImpactStoryDbRow = {
 	published: boolean;
 	created_at: string;
 };
+
+const toContactMessage = (row: ContactDbRow): ContactMessage => ({
+	id: row.id,
+	name: row.name,
+	email: row.email,
+	subject: row.subject,
+	message: row.message,
+	read: Boolean(row.read),
+	createdAt: row.created_at,
+});
 
 const toAppointment = (row: AppointmentDbRow): Appointment => ({
 	id: row.id,
@@ -260,6 +280,30 @@ export const api = {
 
 		if (error) throw new Error(error.message);
 		return { message: "Message received" };
+	},
+
+	getContacts: async () => {
+		await ensureAdminSession();
+		const { data, error } = await supabase
+			.from("contacts")
+			.select("*")
+			.order("created_at", { ascending: false });
+
+		if (error) throw new Error(error.message);
+		return (data as ContactDbRow[]).map(toContactMessage);
+	},
+
+	markContactRead: async (id: string, read: boolean = true) => {
+		await ensureAdminSession();
+		const { data, error } = await supabase
+			.from("contacts")
+			.update({ read })
+			.eq("id", id)
+			.select()
+			.single();
+
+		if (error) throw new Error(error.message);
+		return toContactMessage(data as ContactDbRow);
 	},
 
 	getAdminAppointments: async () => {

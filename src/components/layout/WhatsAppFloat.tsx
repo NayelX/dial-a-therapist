@@ -1,4 +1,4 @@
-﻿import { MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { SITE_CONFIG } from '../../config/site';
 
 export const WhatsAppFloat = () => {
@@ -15,9 +15,10 @@ export const WhatsAppFloat = () => {
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="bg-[#3a9b7a] hover:bg-[#2f8669] text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300"
+        aria-label="Chat with Dial-a-Therapist on WhatsApp"
+        className="bg-[#3a9b7a] hover:bg-[#2f8669] text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-gold/50 outline-none"
       >
-        <MessageCircle size={32} />
+        <MessageCircle size={32} aria-hidden="true" />
       </a>
     </div>
   );

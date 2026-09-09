@@ -1,8 +1,9 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Phone, Mail } from 'lucide-react';
 import { SITE_CONFIG } from '../../config/site';
+import datLogo from '../../assets/images/dat_logo.jpeg';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -62,20 +63,21 @@ export const Navbar = () => {
         type: 'spring',
         stiffness: 300,
         damping: 30,
-        when: 'afterChildren',
       },
     },
     open: {
-      x: '0%',
+      x: 0,
       transition: {
         type: 'spring',
         stiffness: 300,
         damping: 30,
-        when: 'beforeChildren',
-        staggerChildren: 0.06,
-        delayChildren: 0.1,
       },
     },
+  };
+
+  const backdropVariants = {
+    closed: { opacity: 0 },
+    open: { opacity: 1 },
   };
 
   const linkItemVariants = {
@@ -84,8 +86,9 @@ export const Navbar = () => {
       opacity: 1,
       x: 0,
       transition: {
-        duration: 0.25,
-        ease: 'easeOut',
+        type: 'spring',
+        stiffness: 300,
+        damping: 24,
       },
     },
   };
@@ -96,9 +99,18 @@ export const Navbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center">
-              <Link to="/" className="flex flex-col">
-                <span className="text-2xl font-bold tracking-tighter text-gold">DIAL-A-THERAPIST GHANA</span>
-                <span className="text-[10px] uppercase tracking-[0.2em] text-gold-light/80">Your care is our care</span>
+              <Link to="/" className="flex items-center gap-3 group">
+                <div className="w-11 h-11 rounded-full overflow-hidden border border-gold/40 shadow-sm shrink-0 bg-charcoal-deep">
+                  <img
+                    src={datLogo}
+                    alt="Dial-a-Therapist Ghana Logo"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xl sm:text-2xl font-bold tracking-tighter text-gold group-hover:text-gold-light transition-colors">DIAL-A-THERAPIST GHANA</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gold-light/80">Your care is our care</span>
+                </div>
               </Link>
             </div>
             
@@ -127,19 +139,20 @@ export const Navbar = () => {
             <div className="md:hidden flex items-center">
               <button 
                 onClick={() => setIsOpen(!isOpen)} 
-                aria-label={isOpen ? "Close menu" : "Open menu"}
+                aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
                 aria-expanded={isOpen}
-                className="text-gold p-3 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-xl hover:bg-white/5 active:scale-95 transition-all focus:outline-none"
+                aria-controls="mobile-nav-drawer"
+                className="text-gold p-3 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-xl hover:bg-white/5 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
               >
-                <div className="w-6 h-5 relative flex flex-col justify-between">
+                <div className="w-6 h-5 relative flex flex-col justify-between" aria-hidden="true">
                   <span
                     className={`block h-0.5 w-full bg-gold rounded-full transform transition-all duration-300 origin-left ${
                       isOpen ? 'rotate-45 translate-x-1 -translate-y-0.5' : ''
                     }`}
                   />
                   <span
-                    className={`block h-0.5 w-full bg-gold rounded-full transition-all duration-200 ${
-                      isOpen ? 'opacity-0 translate-x-2' : 'opacity-100'
+                    className={`block h-0.5 w-full bg-gold rounded-full transition-opacity duration-200 ${
+                      isOpen ? 'opacity-0' : 'opacity-100'
                     }`}
                   />
                   <span
@@ -158,38 +171,52 @@ export const Navbar = () => {
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 z-50 md:hidden flex">
-            {/* Backdrop Blur Overlay with Outside Click */}
+            {/* Backdrop Blur Overlay */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              variants={backdropVariants}
+              initial="closed"
+              animate="open"
+              exit="closed"
               transition={{ duration: 0.25 }}
               onClick={() => setIsOpen(false)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm"
               aria-hidden="true"
             />
 
-            {/* Slide-out Drawer Panel */}
+            {/* Slide-out Drawer from Left */}
             <motion.div
+              id="mobile-nav-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Mobile Navigation Menu"
               variants={drawerVariants}
               initial="closed"
               animate="open"
               exit="closed"
-              className="relative w-full max-w-[320px] sm:max-w-sm h-full bg-charcoal text-white shadow-2xl flex flex-col justify-between z-10 border-r border-gold/20 overflow-y-auto"
+              className="relative w-full max-w-[320px] sm:max-w-sm h-full bg-charcoal text-white shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12)] flex flex-col justify-between z-10 border-r border-gold/20 overflow-y-auto"
             >
               {/* Top Drawer Header */}
               <div>
                 <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                  <Link to="/" onClick={() => setIsOpen(false)} className="flex flex-col">
-                    <span className="text-lg font-bold tracking-tighter text-gold">DIAL-A-THERAPIST</span>
-                    <span className="text-[9px] uppercase tracking-[0.2em] text-gold-light/80">Your care is our care</span>
+                  <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2.5" aria-label="Dial-a-Therapist Home">
+                    <div className="w-9 h-9 rounded-full overflow-hidden border border-gold/40 shadow-sm shrink-0 bg-charcoal-deep">
+                      <img
+                        src={datLogo}
+                        alt="Dial-a-Therapist Ghana Logo"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-base font-bold tracking-tighter text-gold">DIAL-A-THERAPIST</span>
+                      <span className="text-[8px] uppercase tracking-[0.2em] text-gold-light/80">Your care is our care</span>
+                    </div>
                   </Link>
                   <button
                     onClick={() => setIsOpen(false)}
-                    aria-label="Close menu"
-                    className="p-2 min-w-[48px] min-h-[48px] flex items-center justify-center text-gold hover:bg-white/5 rounded-xl transition-colors active:scale-95"
+                    aria-label="Close navigation menu"
+                    className="p-2 min-w-[48px] min-h-[48px] flex items-center justify-center text-gold hover:bg-white/5 rounded-xl transition-colors active:scale-95 focus-visible:ring-2 focus-visible:ring-gold/50"
                   >
-                    <div className="w-5 h-5 relative flex items-center justify-center">
+                    <div className="w-5 h-5 relative flex items-center justify-center" aria-hidden="true">
                       <span className="absolute block h-0.5 w-5 bg-gold rotate-45 rounded-full" />
                       <span className="absolute block h-0.5 w-5 bg-gold -rotate-45 rounded-full" />
                     </div>

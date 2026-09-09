@@ -4,11 +4,13 @@
 This guide is for the platform administrator/therapist managing appointments, impact stories, and public-facing updates.
 
 ## 2. What You Can Do
-- Sign in to the admin dashboard
-- Review and update appointment request statuses
-- Create, edit, and remove Community Impact stories
-- Upload up to 3 images per impact story
-- Take down stories (this removes story data and linked images)
+- Sign in to the secure admin dashboard
+- Manage tabs with live alert badges: **Appointments**, **Messages**, and **Impact Stories**
+- Review and update appointment request statuses (Pending, Confirmed, Cancelled)
+- View, expand, and mark contact inquiries as read/unread in the Messages tab
+- Create, edit, and remove Community Impact stories using the interactive **FileDropzone** component
+- Upload up to 3 images per impact story with instant thumbnail previews and removal actions
+- Take down stories (this removes story data and linked storage images)
 
 ## 3. Before You Start
 - You need a valid admin account in Supabase Auth.
@@ -16,43 +18,49 @@ This guide is for the platform administrator/therapist managing appointments, im
 - Stable internet connection is required for image upload.
 
 ## 4. Logging In
-1. Open the website.
-2. Go to the login page.
-3. Enter admin email and password.
-4. If login fails, verify the email is the approved admin email and retry.
+1. Open the website and navigate to `/login` (or via the Admin link in the footer).
+2. Enter the admin email and password.
+3. If login fails, verify the email matches the approved admin email and retry.
 
 ## 5. Managing Appointments
 ### View Requests
-1. Open Admin Dashboard.
-2. Use status filters: All, Pending, Confirmed, Cancelled.
-3. Click a row to open full client details.
+1. Open Admin Dashboard and select the **Appointments** tab.
+2. The tab shows a live badge with the count of pending appointments.
+3. Use status filters: **All**, **Pending**, **Confirmed**, **Cancelled**.
+4. Click a row to open full client intake and medical history details in the modal.
 
 ### Update Status
-1. In table view or detail view, choose Confirm or Cancel.
-2. The status updates immediately in the dashboard.
+1. In table view or detail view, choose **Confirm** or **Cancel**.
+2. The status updates immediately in the dashboard and updates the pending counter.
 
-## 6. Managing Community Impact Stories
+## 6. Managing Inquiries (Messages Tab)
+1. Select the **Messages** tab on the top navigation bar.
+2. The tab badge displays the count of unread inquiries.
+3. Filter by **All**, **Unread**, or **Read**.
+4. Click any message row to expand and read the full text. Expanding an unread message automatically marks it as read.
+5. Use the quick action button to toggle read/unread status as needed.
+
+## 7. Managing Community Impact Stories
 ### Create a Story
-1. Go to Community Impact Stories section.
-2. Fill in title, date label, summary, optional quote/testimonial author, and full story URL.
-3. Upload images using the file picker.
-   - Minimum: 1 image
-   - Maximum: 3 images
-4. Choose whether to publish immediately.
-5. Click Add Impact Story.
+1. Go to the **Impact Stories** tab.
+2. Complete the grouped form sections:
+   - **1. Story Content**: Title, date label, summary.
+   - **2. Media**: Drag and drop or browse images using the **FileDropzone** (up to 3 images with thumbnail preview and trash/delete buttons).
+   - **3. Testimonial (Optional)**: Quote and author attribution.
+   - **4. Publishing & Links**: Full story URL (e.g. Facebook) and immediate publishing checkbox.
+3. Click **Add Impact Story**.
 
 ### Edit a Story
-1. Click Edit on a story card in admin list.
-2. Update text fields as needed.
-3. To replace images, upload a new set (up to 3).
-4. Click Update Impact Story.
+1. Click **Edit** on any story in the admin list.
+2. The form loads existing details and highlights the active editing state.
+3. To replace images, use the FileDropzone to pick a new set (up to 3).
+4. Click **Update Impact Story** or **Cancel Edit**.
 
 ### Take Down / Delete a Story
-1. Click the take-down or delete action.
-2. Confirm removal workflow (if prompted).
-3. Result:
-   - Story record is deleted.
-   - Linked storage images are deleted.
+1. Click the trash icon on the story card.
+2. Confirm removal:
+   - Story record is deleted from Postgres.
+   - Linked storage images are deleted from Supabase Storage.
 
 ## 7. How Stories Display Publicly
 - Stories appear as cards on the Community Impact page.
