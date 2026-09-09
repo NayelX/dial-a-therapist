@@ -28,16 +28,21 @@ This project provides:
 ## Core Features
 
 ### Public Experience
-- Home, About, Services, Contact, Community Impact
-- Appointment request form with full intake fields
-- WhatsApp quick contact integration
+- Home, About, Services, Contact, Profile, Community Impact
+- **3-Step Appointment Intake Wizard**: Intuitive step progression (Personal & Contact, Medical & Details, Review & Consent) with per-step field validation and honeypot bot-deterrent protection
+- Contact inquiry form with honeypot security
+- Seamless mobile slide-out navigation drawer with smooth backdrop blur and touch targets
+- WhatsApp direct float and branded in-page action buttons
+- Dynamic Skeleton loader placeholders during public community story fetches
 - Custom 404 page
 
 ### Admin Experience
 - Secure admin login via Supabase Auth
-- Appointment table with status updates (Pending, Confirmed, Cancelled)
-- Detailed appointment modal for full intake review
-- Impact story create, edit, and delete workflow
+- **Tabbed Admin Console**: Segmented desktop tabs & responsive mobile controls for:
+  - **Appointments**: Real-time pending count badge, status filters (Pending, Confirmed, Cancelled), and full intake modal
+  - **Messages**: Unread count badge, expandable inquiry reader with automatic mark-as-read
+  - **Impact Stories**: Grouped story creation & editing with drag-and-drop file upload
+- Custom **FileDropzone** component supporting up to 3 images with live thumbnail previews and delete controls
 
 ### Community Impact Stories
 - Admin can upload 1 to 3 images per story
@@ -50,8 +55,9 @@ This project provides:
 - Supabase Postgres is the system of record
 - Row Level Security policies control access by role and email
 - Public users can submit forms and read published impact stories
-- Admin users can manage appointments and impact stories
+- Admin users can manage appointments, read messages, and manage impact stories
 - Supabase Storage bucket serves impact story images
+- `vercel.json` provides SPA fallback rewrites for client-side routing
 
 ## Project Structure
 
@@ -64,9 +70,16 @@ This project provides:
 │   └── supabase-setup.sql
 ├── public/
 ├── src/
-│   ├── pages/
-│   ├── services/
-│   └── types/
+│   ├── assets/
+│   ├── components/
+│   │   ├── common/      # Button, FileDropzone, SkeletonLoader
+│   │   └── layout/      # Navbar, Footer, WhatsAppFloat
+│   ├── config/          # Central site.ts
+│   ├── lib/             # Framer Motion transitions & variants
+│   ├── pages/           # Home, About, Services, AppointmentRequest, etc.
+│   ├── services/        # Supabase client & API services
+│   └── types/           # Domain TypeScript interfaces
+├── vercel.json
 ├── .env.example
 ├── package.json
 └── readme.md

@@ -30,8 +30,11 @@ create table if not exists public.contacts (
   email text not null,
   subject text not null,
   message text not null,
+  read boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table public.contacts add column if not exists read boolean not null default false;
 
 create table if not exists public.impact_stories (
   id uuid primary key default gen_random_uuid(),
@@ -75,7 +78,7 @@ to anon, authenticated
 with check (true);
 
 -- Admin read/update by auth email.
--- Replace the email in both policies below.
+-- Replace the email in policies below.
 drop policy if exists "admin_select_appointments" on public.appointments;
 create policy "admin_select_appointments"
 on public.appointments
@@ -88,6 +91,21 @@ using (
 drop policy if exists "admin_update_appointments" on public.appointments;
 create policy "admin_update_appointments"
 on public.appointments
+for update
+to authenticated
+using ((auth.jwt() ->> 'email') = 'ayelgumhandson001@gmail.com')
+with check ((auth.jwt() ->> 'email') = 'ayelgumhandson001@gmail.com');
+
+drop policy if exists "admin_select_contacts" on public.contacts;
+create policy "admin_select_contacts"
+on public.contacts
+for select
+to authenticated
+using ((auth.jwt() ->> 'email') = 'ayelgumhandson001@gmail.com');
+
+drop policy if exists "admin_update_contacts" on public.contacts;
+create policy "admin_update_contacts"
+on public.contacts
 for update
 to authenticated
 using ((auth.jwt() ->> 'email') = 'ayelgumhandson001@gmail.com')

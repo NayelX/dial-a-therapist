@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -16,14 +16,25 @@ import {
   Plus,
   Trash2,
   Pencil,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Check
 } from 'lucide-react';
-import { Appointment, ImpactStory } from '../types';
+import { Appointment, ImpactStory, ContactMessage } from '../types';
 import { api } from '../services/api';
+import { Button } from '../components/common/Button';
+import { FileDropzone } from '../components/common/FileDropzone';
+import datLogo from '../assets/images/dat_logo.jpeg';
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState<'appointments' | 'stories' | 'messages'>('appointments');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [impactStories, setImpactStories] = useState<ImpactStory[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [filter, setFilter] = useState('All');
   const [impactStatus, setImpactStatus] = useState<'idle' | 'saving' | 'error'>('idle');
@@ -55,16 +66,54 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [appointments, stories] = await Promise.all([
+      const [appointments, stories, contacts] = await Promise.all([
         api.getAdminAppointments(),
         api.getAdminImpactStories(),
+        api.getContacts(),
       ]);
       setAppointments(appointments);
       setImpactStories(stories);
+      setContactMessages(contacts);
     } catch (err) {
       navigate('/login');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleMessageExpand = async (message: ContactMessage) => {
+    const isExpanded = expandedMessageIds.has(message.id);
+    setExpandedMessageIds((prev) => {
+      const next = new Set(prev);
+      if (isExpanded) {
+        next.delete(message.id);
+      } else {
+        next.add(message.id);
+      }
+      return next;
+    });
+
+    if (!isExpanded && !message.read) {
+      try {
+        await api.markContactRead(message.id, true);
+        setContactMessages((prev) =>
+          prev.map((m) => (m.id === message.id ? { ...m, read: true } : m))
+        );
+      } catch (err) {
+        console.error('Failed to mark message as read:', err);
+      }
+    }
+  };
+
+  const handleMarkMessageRead = async (e: MouseEvent, id: string, read: boolean) => {
+    e.stopPropagation();
+    try {
+      await api.markContactRead(id, read);
+      setContactMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, read } : m))
+      );
+    } catch (err) {
+      console.error('Failed to update message status:', err);
     }
   };
 
@@ -147,6 +196,10 @@ export default function AdminDashboard() {
     navigate('/login');
   };
 
+  const pendingCount = appointments.filter((a) => a.status === 'Pending').length;
+  const storiesCount = impactStories.length;
+  const unreadMessagesCount = contactMessages.filter((m) => !m.read).length;
+
   const filteredAppointments = filter === 'All' 
     ? appointments 
     : appointments.filter(a => a.status === filter);
@@ -159,240 +212,476 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Top Navigation */}
-      <nav className="bg-charcoal text-white px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-[60] shadow-lg border-b border-gold/20">
-        <div className="max-w-7xl mx-auto flex justify-between items-center gap-3">
-          <div className="flex items-center gap-4 sm:gap-8 min-w-0">
-            <div>
-              <h2 className="text-xl font-bold text-gold tracking-tighter leading-none">ADMIN PANEL</h2>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Dial-A-Therapist Ghana</p>
+      {/* Top Navigation Bar */}
+      <nav className="bg-charcoal text-white sticky top-0 z-[60] shadow-lg border-b border-gold/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4">
+          {/* Main Header Row */}
+          <div className="flex justify-between items-center gap-4">
+            {/* Left: Brand Identity */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-gold/40 shadow-sm shrink-0 bg-charcoal-deep">
+                <img
+                  src={datLogo}
+                  alt="Dial-A-Therapist Ghana"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="min-w-0 hidden sm:block">
+                <h2 className="text-xl font-bold text-gold tracking-tighter leading-none">ADMIN PANEL</h2>
+                <p className="text-[10px] text-white/50 uppercase tracking-widest mt-1 truncate">Dial-A-Therapist Ghana</p>
+              </div>
+              <div className="sm:hidden">
+                <span className="text-xs font-bold text-gold tracking-wider uppercase">Admin</span>
+              </div>
             </div>
-            {/* <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gold/10 rounded-lg border border-gold/20">
-              <Calendar size={16} className="text-gold" />
-              <span className="text-xs font-bold text-gold uppercase tracking-wider">Appointments</span>
-            </div> */}
+
+            {/* Center (Desktop only): Segmented Tab Control */}
+            <div className="hidden sm:flex items-center bg-black/40 p-1 rounded-2xl border border-white/10">
+              <button
+                type="button"
+                onClick={() => setActiveTab('appointments')}
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  activeTab === 'appointments'
+                    ? 'bg-gold text-charcoal shadow-md font-extrabold'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Calendar size={15} />
+                <span>Appointments</span>
+                <span 
+                  className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                    activeTab === 'appointments'
+                      ? pendingCount > 0 
+                        ? 'bg-charcoal text-gold font-black shadow-inner' 
+                        : 'bg-black/20 text-charcoal'
+                      : pendingCount > 0
+                        ? 'bg-amber-400 text-charcoal font-black'
+                        : 'bg-white/10 text-white/50'
+                  }`}
+                  title={`${pendingCount} pending appointments`}
+                >
+                  {pendingCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('stories')}
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  activeTab === 'stories'
+                    ? 'bg-gold text-charcoal shadow-md font-extrabold'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Sparkles size={15} />
+                <span>Impact Stories</span>
+                <span 
+                  className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                    activeTab === 'stories'
+                      ? 'bg-black/20 text-charcoal'
+                      : 'bg-white/10 text-white/70'
+                  }`}
+                  title={`${storiesCount} total stories`}
+                >
+                  {storiesCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('messages')}
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  activeTab === 'messages'
+                    ? 'bg-gold text-charcoal shadow-md font-extrabold'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <MessageSquare size={15} />
+                <span>Messages</span>
+                <span 
+                  className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                    activeTab === 'messages'
+                      ? unreadMessagesCount > 0
+                        ? 'bg-charcoal text-gold font-black shadow-inner'
+                        : 'bg-black/20 text-charcoal'
+                      : unreadMessagesCount > 0
+                        ? 'bg-amber-400 text-charcoal font-black'
+                        : 'bg-white/10 text-white/50'
+                  }`}
+                  title={`${unreadMessagesCount} unread messages`}
+                >
+                  {unreadMessagesCount}
+                </span>
+              </button>
+            </div>
+
+            {/* Right: Logout Button with guaranteed touch target */}
+            <div className="flex items-center">
+              <Button 
+                variant="ghost"
+                onClick={handleLogout}
+                className="shrink-0 text-red-400 hover:bg-red-400/10 hover:text-red-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm min-h-[44px] flex items-center gap-2 font-bold"
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </Button>
+            </div>
           </div>
 
-          <button 
-            onClick={handleLogout}
-            className="shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2 text-red-400 hover:bg-red-400/10 rounded-xl transition-all text-xs sm:text-sm font-bold"
-          >
-            <LogOut size={18} /> Logout
-          </button>
+          {/* Mobile Tab Row (below sm/640px): Full-width Segmented Control */}
+          <div className="sm:hidden mt-3 pt-3 border-t border-white/10">
+            <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-1 rounded-2xl border border-white/10">
+              <button
+                type="button"
+                onClick={() => setActiveTab('appointments')}
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'appointments'
+                    ? 'bg-gold text-charcoal shadow-md font-extrabold'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Calendar size={13} />
+                <span className="truncate">Appts</span>
+                <span 
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    activeTab === 'appointments'
+                      ? pendingCount > 0 
+                        ? 'bg-charcoal text-gold' 
+                        : 'bg-black/20 text-charcoal'
+                      : pendingCount > 0
+                        ? 'bg-amber-400 text-charcoal'
+                        : 'bg-white/10 text-white/50'
+                  }`}
+                >
+                  {pendingCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('stories')}
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'stories'
+                    ? 'bg-gold text-charcoal shadow-md font-extrabold'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Sparkles size={13} />
+                <span className="truncate">Stories</span>
+                <span 
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    activeTab === 'stories'
+                      ? 'bg-black/20 text-charcoal'
+                      : 'bg-white/10 text-white/70'
+                  }`}
+                >
+                  {storiesCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('messages')}
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'messages'
+                    ? 'bg-gold text-charcoal shadow-md font-extrabold'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <MessageSquare size={13} />
+                <span className="truncate">Inbox</span>
+                <span 
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    activeTab === 'messages'
+                      ? unreadMessagesCount > 0
+                        ? 'bg-charcoal text-gold'
+                        : 'bg-black/20 text-charcoal'
+                      : unreadMessagesCount > 0
+                        ? 'bg-amber-400 text-charcoal'
+                        : 'bg-white/10 text-white/50'
+                  }`}
+                >
+                  {unreadMessagesCount}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-4 sm:p-8 md:p-12">
-        <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8 sm:mb-12">
+        {activeTab === 'appointments' && (
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Appointment Requests</h1>
-            <p className="text-stone-500 mt-2">Manage requests and view client intake data</p>
-          </div>
-          
-          {/* Filters */}
-          <div className="flex flex-wrap gap-2">
-            {['All', 'Pending', 'Confirmed', 'Cancelled'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border ${
-                  filter === f 
-                    ? 'bg-charcoal text-white border-charcoal shadow-md' 
-                    : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-100'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </header>
-
-        <div className="space-y-6">
-          {/* Table */}
-          <div className="bg-white rounded-[2rem] border border-stone-200 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left border-collapse">
-              <thead>
-                <tr className="bg-stone-50 border-b border-stone-200">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Client</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Service</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Schedule</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Status</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {filteredAppointments.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-stone-400 italic">No appointments found</td>
-                  </tr>
-                ) : filteredAppointments.map((app) => (
-                  <tr 
-                    key={app.id} 
-                    className="hover:bg-stone-50 transition-colors cursor-pointer"
-                    onClick={() => setSelectedAppointment(app)}
+            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8 sm:mb-12">
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Appointment Requests</h1>
+                <p className="text-stone-500 mt-2">Manage requests and view client intake data</p>
+              </div>
+              
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2">
+                {['All', 'Pending', 'Confirmed', 'Cancelled'].map((f) => (
+                  <Button
+                    key={f}
+                    variant={filter === f ? 'dark' : 'secondary'}
+                    onClick={() => setFilter(f)}
+                    className={`px-4 py-2 rounded-lg text-xs uppercase tracking-widest min-h-[40px] ${
+                      filter === f 
+                        ? 'shadow-md' 
+                        : 'text-stone-500 hover:bg-stone-100'
+                    }`}
                   >
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center text-stone-500">
-                          <User size={18} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm">{app.fullName}</p>
-                          <p className="text-xs text-stone-400">{app.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="px-3 py-1 rounded-full bg-gold/10 text-gold-dark text-[10px] font-bold uppercase tracking-wider">
-                        {app.serviceType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="text-sm">
-                        <p className="font-medium">{app.preferredDate}</p>
-                        <p className="text-xs text-stone-400">{app.preferredTime}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        app.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
-                        app.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' :
-                        'bg-rose-100 text-rose-700'
-                      }`}>
-                        {app.status === 'Pending' && <Clock size={10} />}
-                        {app.status === 'Confirmed' && <CheckCircle2 size={10} />}
-                        {app.status === 'Cancelled' && <XCircle size={10} />}
-                        {app.status}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={() => updateStatus(app.id, 'Confirmed')}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                          title="Confirm appointment"
-                        >
-                          <CheckCircle2 size={18} />
-                        </button>
-                        <button 
-                          onClick={() => updateStatus(app.id, 'Cancelled')}
-                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                          title="Cancel appointment"
-                        >
-                          <XCircle size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                    {f}
+                  </Button>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </header>
+
+            {/* Table */}
+            <div className="bg-white rounded-[2rem] border border-stone-200 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left border-collapse">
+                <thead>
+                  <tr className="bg-stone-50 border-b border-stone-200">
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Client</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Service</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Schedule</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Status</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {filteredAppointments.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-stone-400 italic">No appointments found</td>
+                    </tr>
+                  ) : filteredAppointments.map((app) => (
+                    <tr 
+                      key={app.id} 
+                      className="hover:bg-stone-50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedAppointment(app)}
+                    >
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center text-stone-500">
+                            <User size={18} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm">{app.fullName}</p>
+                            <p className="text-xs text-stone-400">{app.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="px-3 py-1 rounded-full bg-gold/10 text-gold-dark text-[10px] font-bold uppercase tracking-wider">
+                          {app.serviceType}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="text-sm">
+                          <p className="font-medium">{app.preferredDate}</p>
+                          <p className="text-xs text-stone-400">{app.preferredTime}</p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          app.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
+                          app.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' :
+                          'bg-rose-100 text-rose-700'
+                        }`}>
+                          {app.status === 'Pending' && <Clock size={10} />}
+                          {app.status === 'Confirmed' && <CheckCircle2 size={10} />}
+                          {app.status === 'Cancelled' && <XCircle size={10} />}
+                          {app.status}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => updateStatus(app.id, 'Confirmed')}
+                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                            title="Confirm appointment"
+                          >
+                            <CheckCircle2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => updateStatus(app.id, 'Cancelled')}
+                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            title="Cancel appointment"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
             </div>
           </div>
+        )}
 
+        {activeTab === 'stories' && (
           <div className="bg-white rounded-[2rem] border border-stone-200 shadow-sm p-4 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Community Impact Stories Upload</h2>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Community Impact Stories Upload</h2>
+                <p className="text-stone-500 text-sm mt-1">Publish, edit, and manage public community stories</p>
+              </div>
               <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
                 {impactStories.length} total
               </span>
             </div>
 
-            <form onSubmit={handleCreateOrUpdateImpactStory} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <input
-                required
-                type="text"
-                placeholder="Story title"
-                value={impactForm.title}
-                onChange={(e) => setImpactForm((prev) => ({ ...prev, title: e.target.value }))}
-                className="px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl"
-              />
-              <div className="px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl">
-                <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">
-                  Story Image {editingImpactStoryId ? '(optional to replace)' : '(required)'}
-                </label>
-                <input
-                  required={!editingImpactStoryId}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  title="Upload story images"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []).slice(0, 3);
-                    setImpactImageFiles(files);
-                  }}
-                  className="w-full text-sm"
-                />
-                <p className="mt-2 text-[11px] text-stone-500">
-                  Upload up to 3 images per story {impactImageFiles.length > 0 ? `(${impactImageFiles.length} selected)` : ''}
-                </p>
+            <form onSubmit={handleCreateOrUpdateImpactStory} className="space-y-6 mb-10">
+              {/* Section 1: Story Content */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-1 border-b border-stone-100">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gold">1. Story Content</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-600">Story Title *</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. A New Beginning for Kofi"
+                      value={impactForm.title}
+                      onChange={(e) => setImpactForm((prev) => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-600">Date Label *</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. March 2026 • Community Outreach"
+                      value={impactForm.date}
+                      onChange={(e) => setImpactForm((prev) => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-stone-600">Summary *</label>
+                    <textarea
+                      required
+                      placeholder="Detailed overview of the outreach, beneficiary, or equipment impact..."
+                      value={impactForm.summary}
+                      onChange={(e) => setImpactForm((prev) => ({ ...prev, summary: e.target.value }))}
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                      rows={3}
+                    />
+                  </div>
+                </div>
               </div>
-              <input
-                required
-                type="text"
-                placeholder="Date label (e.g. March 2026 • Outreach)"
-                value={impactForm.date}
-                onChange={(e) => setImpactForm((prev) => ({ ...prev, date: e.target.value }))}
-                className="px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl"
-              />
-              <input
-                required
-                type="url"
-                placeholder="Full story URL"
-                value={impactForm.fullStoryUrl}
-                onChange={(e) => setImpactForm((prev) => ({ ...prev, fullStoryUrl: e.target.value }))}
-                className="px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl"
-              />
-              <textarea
-                required
-                placeholder="Summary"
-                value={impactForm.summary}
-                onChange={(e) => setImpactForm((prev) => ({ ...prev, summary: e.target.value }))}
-                className="md:col-span-2 px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl"
-                rows={3}
-              />
-              <input
-                type="text"
-                placeholder="Quote (optional)"
-                value={impactForm.quote}
-                onChange={(e) => setImpactForm((prev) => ({ ...prev, quote: e.target.value }))}
-                className="px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl"
-              />
-              <input
-                type="text"
-                placeholder="Testimonial author (optional)"
-                value={impactForm.testimonialAuthor}
-                onChange={(e) => setImpactForm((prev) => ({ ...prev, testimonialAuthor: e.target.value }))}
-                className="px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl"
-              />
-              <label className="md:col-span-2 flex items-center gap-2 text-sm font-medium text-stone-600">
-                <input
-                  type="checkbox"
-                  checked={impactForm.published}
-                  onChange={(e) => setImpactForm((prev) => ({ ...prev, published: e.target.checked }))}
-                />
-                Publish immediately (if unchecked, story will be saved as draft)
-              </label>
-              <button
-                type="submit"
-                disabled={impactStatus === 'saving'}
-                className="md:col-span-2 inline-flex items-center justify-center gap-2 bg-charcoal text-white px-5 py-3 rounded-xl font-bold disabled:opacity-50"
-              >
-                <Plus size={16} /> {impactStatus === 'saving' ? 'Saving...' : editingImpactStoryId ? 'Update Impact Story' : 'Add Impact Story'}
-              </button>
-              {editingImpactStoryId && (
-                <button
-                  type="button"
-                  onClick={resetImpactForm}
-                  className="md:col-span-2 inline-flex items-center justify-center gap-2 bg-stone-200 text-stone-800 px-5 py-3 rounded-xl font-bold"
+
+              {/* Section 2: Media */}
+              <div className="pt-6 border-t border-stone-200 space-y-4">
+                <div className="flex items-center gap-2 pb-1 border-b border-stone-100">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gold">2. Media</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-600 mb-2">
+                    Story Images {editingImpactStoryId ? '(optional to replace)' : '(required)'}
+                  </label>
+                  <FileDropzone
+                    files={impactImageFiles}
+                    onFilesChange={(files) => setImpactImageFiles(files)}
+                    maxFiles={3}
+                    required={!editingImpactStoryId}
+                  />
+                </div>
+              </div>
+
+              {/* Section 3: Testimonial (Optional) */}
+              <div className="pt-6 border-t border-stone-200 space-y-4">
+                <div className="flex items-center gap-2 pb-1 border-b border-stone-100">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gold">3. Testimonial (Optional)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-600">Quote</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Seeing him write was a miracle..."
+                      value={impactForm.quote}
+                      onChange={(e) => setImpactForm((prev) => ({ ...prev, quote: e.target.value }))}
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-600">Author / Attribution</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Beneficiary's Mother"
+                      value={impactForm.testimonialAuthor}
+                      onChange={(e) => setImpactForm((prev) => ({ ...prev, testimonialAuthor: e.target.value }))}
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Publishing */}
+              <div className="pt-6 border-t border-stone-200 space-y-4">
+                <div className="flex items-center gap-2 pb-1 border-b border-stone-100">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gold">4. Publishing & Links</span>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-600">Full Story URL *</label>
+                    <input
+                      required
+                      type="url"
+                      placeholder="https://facebook.com/..."
+                      value={impactForm.fullStoryUrl}
+                      onChange={(e) => setImpactForm((prev) => ({ ...prev, fullStoryUrl: e.target.value }))}
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl border border-stone-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={impactForm.published}
+                      onChange={(e) => setImpactForm((prev) => ({ ...prev, published: e.target.checked }))}
+                      className="w-4 h-4 accent-gold cursor-pointer rounded"
+                    />
+                    <span className="text-sm font-medium text-stone-700">
+                      Publish immediately to public community impact page (if unchecked, saves as draft)
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Form Action Buttons */}
+              <div className="pt-6 border-t border-stone-200 flex flex-col sm:flex-row gap-3">
+                <Button
+                  type="submit"
+                  variant="dark"
+                  isLoading={impactStatus === 'saving'}
+                  loadingText="Saving..."
+                  className="w-full sm:w-auto px-8 rounded-xl"
                 >
-                  Cancel Edit
-                </button>
-              )}
+                  <Plus size={16} /> {editingImpactStoryId ? 'Update Impact Story' : 'Add Impact Story'}
+                </Button>
+                {editingImpactStoryId && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={resetImpactForm}
+                    className="w-full sm:w-auto px-6 rounded-xl"
+                  >
+                    Cancel Edit
+                  </Button>
+                )}
+              </div>
+
               {impactStatus === 'error' && (
-                <p className="md:col-span-2 text-sm text-rose-600 font-medium">Could not save story. Please check your values and try again.</p>
+                <p className="text-sm text-rose-600 font-medium">Could not save story. Please check your values and try again.</p>
               )}
             </form>
 
@@ -442,7 +731,127 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'messages' && (
+          <div>
+            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8 sm:mb-12">
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Contact Messages</h1>
+                <p className="text-stone-500 mt-2">Manage incoming inquiries and outreach notes from the contact form</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+                  {contactMessages.length} Total Messages
+                </span>
+                {unreadMessagesCount > 0 && (
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                    {unreadMessagesCount} unread
+                  </span>
+                )}
+              </div>
+            </header>
+
+            {contactMessages.length === 0 ? (
+              <div className="bg-white rounded-[2rem] border border-stone-200 p-12 text-center text-stone-400 italic shadow-sm">
+                No contact messages yet.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contactMessages.map((msg) => {
+                  const isExpanded = expandedMessageIds.has(msg.id);
+                  return (
+                    <div 
+                      key={msg.id}
+                      onClick={() => handleToggleMessageExpand(msg)}
+                      className={`bg-white rounded-[1.75rem] border transition-all cursor-pointer shadow-sm overflow-hidden ${
+                        msg.read 
+                          ? 'border-stone-200 hover:border-stone-300' 
+                          : 'border-gold/60 bg-gold/[0.02] ring-1 ring-gold/30'
+                      }`}
+                    >
+                      <div className="p-5 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                              msg.read ? 'bg-stone-100 text-stone-500' : 'bg-gold/20 text-gold-dark'
+                            }`}>
+                              <MessageSquare size={18} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2.5 flex-wrap">
+                                <h3 className="text-base font-bold text-charcoal">{msg.name}</h3>
+                                {!msg.read && (
+                                  <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-charcoal shadow-sm">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-stone-400 truncate">{msg.email}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-3 self-stretch sm:self-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
+                            <span className="text-xs text-stone-400">
+                              {new Date(msg.createdAt).toLocaleString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                onClick={(e) => handleMarkMessageRead(e, msg.id, !msg.read)}
+                                className="text-xs py-1 px-2.5 min-h-[32px] rounded-lg text-stone-500 hover:text-charcoal hover:bg-stone-100 flex items-center gap-1.5"
+                                title={msg.read ? "Mark as unread" : "Mark as read"}
+                              >
+                                <Check size={14} className={msg.read ? "text-emerald-600" : "text-stone-400"} />
+                                <span>{msg.read ? 'Mark Unread' : 'Mark Read'}</span>
+                              </Button>
+                              <div className="p-1.5 text-stone-400 rounded-lg">
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-stone-100">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-bold uppercase tracking-wider text-gold">Subject:</span>
+                            <span className="text-sm font-semibold text-charcoal">{msg.subject}</span>
+                          </div>
+                          
+                          <p className={`text-sm text-stone-600 leading-relaxed whitespace-pre-wrap ${
+                            isExpanded ? '' : 'line-clamp-2'
+                          }`}>
+                            {msg.message}
+                          </p>
+
+                          {!isExpanded && msg.message.length > 120 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleMessageExpand(msg);
+                              }}
+                              className="mt-2 text-xs font-bold text-gold hover:text-gold-dark flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Read full message</span>
+                              <ChevronDown size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Appointment Details Modal */}
@@ -460,7 +869,7 @@ export default function AdminDashboard() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-4xl bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+              className="relative w-full max-w-4xl bg-white rounded-[2rem] sm:rounded-[3rem] shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12)] overflow-hidden flex flex-col max-h-[92vh]"
             >
               <div className="p-4 sm:p-8 border-b border-stone-100 flex justify-between items-start sm:items-center gap-3 bg-stone-50">
                 <div className="min-w-0">
@@ -499,20 +908,22 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                     <div className="flex w-full sm:w-auto gap-2">
-                    <button 
+                    <Button 
+                      variant="primary"
                       onClick={() => updateStatus(selectedAppointment.id, 'Confirmed')}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-all"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold min-h-[40px]"
                       title="Confirm appointment"
                     >
                       Confirm
-                    </button>
-                    <button 
+                    </Button>
+                    <Button 
+                      variant="dark"
                       onClick={() => updateStatus(selectedAppointment.id, 'Cancelled')}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold hover:bg-rose-700 transition-all"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-bold min-h-[40px]"
                       title="Cancel appointment"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
 

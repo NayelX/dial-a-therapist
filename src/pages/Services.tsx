@@ -1,51 +1,76 @@
 import { motion } from 'motion/react';
 import { Heart, Brain, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SITE_CONFIG } from '../config/site';
+import { fadeUpVariant } from '../lib/motion';
+import { ReactNode } from 'react';
+import pediatricImg from '../assets/images/pediatric_therapy.jpeg';
+import mentalHealthImg from '../assets/images/mental_therapy.jpeg';
 
-const ServiceSection = ({ title, icon, color, items, description }: any) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    className="mb-20"
-  >
-    <div className="flex items-center gap-4 mb-8">
-      <div className={`p-4 rounded-2xl ${color} text-white shadow-lg`}>
-        {icon}
+interface ServiceSectionProps {
+  title: string;
+  icon: ReactNode;
+  color: string;
+  items: string[];
+  description: string;
+}
+
+const ServiceSection = ({ title, icon, color, items, description }: ServiceSectionProps) => {
+  const isPediatrics = title.includes('Pediatrics');
+  const serviceImage = isPediatrics ? pediatricImg : mentalHealthImg;
+
+  return (
+    <motion.div 
+      variants={fadeUpVariant}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true }}
+      className="mb-20"
+    >
+      <div className="flex items-center gap-4 mb-8">
+        <div className={`p-4 rounded-2xl ${color} text-white shadow-lg`}>
+          {icon}
+        </div>
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight">{title}</h2>
       </div>
-      <h2 className="text-3xl md:text-4xl font-bold tracking-tight">{title}</h2>
-    </div>
-    
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-      <div className="bg-stone-50 p-8 rounded-3xl border border-stone-100">
-        <p className="text-lg text-stone-600 leading-relaxed mb-8">
-          {description}
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {items.map((item: string, i: number) => (
-            <div key={i} className="flex items-center gap-3">
-              <CheckCircle2 size={18} className="text-gold shrink-0" />
-              <span className="text-stone-800 font-medium text-sm">{item}</span>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="order-2 lg:order-1 bg-stone-50 p-8 sm:p-10 rounded-3xl border border-stone-200/80 hover:border-gold/40 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all flex flex-col justify-center">
+          <div>
+            <p className="text-base sm:text-lg text-stone-600 leading-relaxed mb-8">
+              {description}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {items.map((item: string, i: number) => (
+                <div key={i} className="flex items-center gap-3">
+                  <CheckCircle2 size={18} className="text-gold shrink-0" />
+                  <span className="text-stone-800 font-medium text-sm">{item}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+        </div>
+        <div className="order-1 lg:order-2 rounded-3xl overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-stone-200/80 aspect-[4/3] max-h-[380px] w-full">
+          <img 
+            src={serviceImage} 
+            alt={title} 
+            className="w-full h-full object-cover object-center"
+          />
         </div>
       </div>
-      <div className="rounded-3xl overflow-hidden h-full min-h-[300px] shadow-xl">
-        <img 
-          src={title.includes('Pediatrics') 
-            ? "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=1000"
-            : "https://images.unsplash.com/photo-1527137342181-19aab11a8ee8?auto=format&fit=crop&q=80&w=1000"
-          } 
-          alt={title} 
-          className="w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
+
+import { usePageSEO } from '../hooks/usePageSEO';
 
 export default function Services() {
+  usePageSEO({
+    title: 'Occupational Therapy Services & Care Specialties',
+    description: 'Explore our specialized occupational therapy programs: Pediatric OT (sensory, motor, milestones) and Mental Health OT (cognitive rehabilitation, vocational skills).',
+    canonicalPath: '/services',
+  });
+
   const pediatrics = [
     "Developmental Milestones",
     "Motor Skills Training",
@@ -104,7 +129,7 @@ export default function Services() {
               Contact us for a brief consultation. We'll help you understand how occupational therapy can benefit you or your loved one.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a href="tel:+233240000000" className="bg-gold text-black px-8 py-4 rounded-full font-bold hover:bg-gold-dark transition-all">
+              <a href={`tel:${SITE_CONFIG.phone.e164}`} className="bg-gold text-black px-8 py-4 rounded-full font-bold hover:bg-gold-dark transition-all">
                 Call Us Now
               </a>
               <Link to="/contact" className="border border-white/20 px-8 py-4 rounded-full font-bold hover:bg-white/10 transition-all">

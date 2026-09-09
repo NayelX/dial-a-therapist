@@ -1,36 +1,44 @@
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Heart, Brain, Users, Award, ShieldCheck, Activity, Stethoscope } from 'lucide-react';
+import { fadeUpVariant, staggerContainer, springTransition } from '../lib/motion';
+import heroTherapyImg from '../assets/images/pediatric2_therapy.jpeg';
+import { usePageSEO } from '../hooks/usePageSEO';
 
 export default function Home() {
+  usePageSEO({
+    title: 'Pediatric & Mental Health Occupational Therapy | Dial-A-Therapist Ghana',
+    description: 'Empowering individuals to live their best lives through specialized occupational therapy in Ghana. Expert pediatric and mental health clinical rehabilitation.',
+    canonicalPath: '/',
+  });
+
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
-      <section className="relative h-[90vh] flex items-center bg-[#f6f2e8]">
+      <section className="relative h-[90vh] flex items-center bg-canvas">
         <div className="absolute inset-0">
           <picture>
             <source
               media="(min-width: 768px)"
-              srcSet="https://images.unsplash.com/photo-1579600161224-cac5a2971069?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDIyfHx8ZW58MHx8fHx8"
+              srcSet="https://images.unsplash.com/photo-1584515933487-779824d29309?w=1600&auto=format&fit=crop&q=85&ixlib=rb-4.0.3"
             />
             <img
-              src="https://images.unsplash.com/photo-1541976844346-f18aeac57b06?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              alt="Therapy support session"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
+              src={heroTherapyImg}
+              alt="Occupational therapy hands-on session"
+              className="w-full h-full object-cover object-center"
             />
           </picture>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#f6f2e8]/95 via-[#f6f2e8]/65 to-[#f6f2e8]/20"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-canvas/95 via-canvas/65 to-canvas/20"></div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            variants={fadeUpVariant}
+            initial="hidden"
+            animate="show"
             className="max-w-2xl"
           >
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#fff8e2] border border-gold/40 text-gold-dark text-xs font-bold uppercase tracking-widest mb-6">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-gold/10 border border-gold/40 text-gold-dark text-xs font-bold uppercase tracking-widest mb-6">
               Occupational Therapy Practice
             </span>
             <h1 className="text-5xl md:text-7xl font-bold text-charcoal tracking-tighter leading-[1.1] mb-6">
@@ -65,10 +73,17 @@ export default function Home() {
             <p className="text-4xl md:text-5xl font-bold tracking-tight text-black">Our Core Services</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <motion.div 
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8"
+          >
             <motion.div 
+              variants={fadeUpVariant}
               whileHover={{ y: -10 }}
-              className="group p-10 rounded-3xl bg-stone-50 border border-stone-100 hover:border-gold/20 transition-all"
+              className="group p-10 rounded-3xl bg-stone-50 border border-stone-200/80 hover:border-gold/40 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all"
             >
               <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center text-gold mb-8 group-hover:bg-gold group-hover:text-black transition-colors">
                 <Heart size={32} />
@@ -83,8 +98,9 @@ export default function Home() {
             </motion.div>
 
             <motion.div 
+              variants={fadeUpVariant}
               whileHover={{ y: -10 }}
-              className="group p-10 rounded-3xl bg-charcoal text-white border border-white/5 hover:border-gold/20 transition-all"
+              className="group p-10 rounded-3xl bg-charcoal text-white border border-stone-200/80 hover:border-gold/40 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all"
             >
               <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black mb-8">
                 <Brain size={32} />
@@ -97,7 +113,7 @@ export default function Home() {
                 Learn More <ChevronRight size={18} />
               </Link>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -134,8 +150,8 @@ export default function Home() {
             <div className="relative">
               <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&q=80&w=1000" 
-                  alt="Community Impact" 
+                  src="https://plus.unsplash.com/premium_photo-1681505195930-388c317b7a76?w=1200&auto=format&fit=crop&q=85&ixlib=rb-4.0.3" 
+                  alt="Community Support and Care" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />

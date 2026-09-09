@@ -1,14 +1,23 @@
 import { motion } from 'motion/react';
 import { ShieldCheck, Heart, Users, Award, Target, Eye } from 'lucide-react';
+import { fadeUpVariant, staggerContainer } from '../lib/motion';
+import { usePageSEO } from '../hooks/usePageSEO';
 
 export default function About() {
+  usePageSEO({
+    title: 'About Us & Our Mission',
+    description: 'Learn about Dial-A-Therapist Ghana: our 12+ years of experience, compassionate person-centered care philosophy, and mission to advance occupational therapy in West Africa.',
+    canonicalPath: '/about',
+  });
+
   return (
     <div className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-32">
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            variants={fadeUpVariant}
+            initial="hidden"
+            animate="show"
           >
             <h1 className="text-5xl md:text-6xl font-bold tracking-tighter mb-8">About <span className="text-gold">Dial-a-Therapist Ghana</span></h1>
             <p className="text-xl text-stone-600 leading-relaxed mb-8">
@@ -29,23 +38,29 @@ export default function About() {
             </div>
           </motion.div>
           <div className="relative">
-            <div className="rounded-[3rem] overflow-hidden shadow-2xl aspect-video lg:aspect-square">
+            <div className="rounded-2xl sm:rounded-[3rem] overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] aspect-[4/3] sm:aspect-video lg:aspect-square">
               <img 
-                src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1000" 
-                alt="Our Clinic" 
-                className="w-full h-full object-cover"
+                src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=1200&auto=format&fit=crop&q=80" 
+                alt="Compassionate Therapy, Wellbeing, and Person-Centered Care" 
+                className="w-full h-full object-cover object-center"
                 referrerPolicy="no-referrer"
               />
             </div>
-            <div className="absolute -bottom-8 -right-8 bg-charcoal text-white p-8 rounded-3xl shadow-xl hidden md:block border border-gold/20">
-              <p className="text-gold font-bold text-lg mb-2 italic">"Your care is our care."</p>
-              <p className="text-white/60 text-sm">Our founding philosophy</p>
+            <div className="absolute -bottom-6 -right-4 sm:-bottom-8 sm:-right-8 bg-charcoal text-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hidden sm:block border border-gold/20 max-w-[260px] sm:max-w-xs">
+              <p className="text-gold font-bold text-base sm:text-lg mb-1 sm:mb-2 italic">"Your care is our care."</p>
+              <p className="text-white/60 text-xs sm:text-sm">Our founding philosophy</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-32">
-          <div className="p-12 rounded-[3rem] bg-stone-50 border border-stone-100">
+        <motion.div 
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-32"
+        >
+          <motion.div variants={fadeUpVariant} className="p-12 rounded-[3rem] bg-stone-50 border border-stone-200/80 hover:border-gold/40 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all">
             <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black mb-8">
               <Target size={32} />
             </div>
@@ -53,8 +68,8 @@ export default function About() {
             <p className="text-lg text-stone-600 leading-relaxed">
               To provide exceptional, person-centered occupational therapy services that empower our clients to achieve their highest level of independence and quality of life through meaningful engagement in daily occupations.
             </p>
-          </div>
-          <div className="p-12 rounded-[3rem] bg-charcoal text-white border border-white/5">
+          </motion.div>
+          <motion.div variants={fadeUpVariant} className="p-12 rounded-[3rem] bg-charcoal text-white border border-stone-200/80 hover:border-gold/40 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all">
             <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black mb-8">
               <Eye size={32} />
             </div>
@@ -62,8 +77,8 @@ export default function About() {
             <p className="text-lg text-white/60 leading-relaxed">
               To be the premier occupational therapy practice in West Africa, recognized for our clinical excellence, innovative approaches, and unwavering commitment to community well-being and social impact.
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         <div className="text-center mb-20">
           <h2 className="text-sm font-bold text-gold uppercase tracking-[0.3em] mb-4">Our Core Values</h2>

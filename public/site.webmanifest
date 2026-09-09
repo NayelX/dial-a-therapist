@@ -1,0 +1,21 @@
+{
+  "name": "Dial-A-Therapist Ghana",
+  "short_name": "Dial-A-Therapist",
+  "description": "Professional Occupational Therapy services in Ghana - Pediatric and Mental Health Care.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f2e8",
+  "theme_color": "#2D2D2D",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
