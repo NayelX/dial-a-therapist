@@ -21,7 +21,20 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Button } from '../components/common/Button';
+import { SelectDropdown } from '../components/common/SelectDropdown';
 import { usePageSEO } from '../hooks/usePageSEO';
+
+const GENDER_OPTIONS = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Prefer not to say' },
+];
+
+const SERVICE_TYPE_OPTIONS = [
+  { value: 'Pediatrics OT', label: 'Pediatrics Occupational Therapy', description: 'Specialized therapy for children and adolescents' },
+  { value: 'Mental Health OT', label: 'Mental Health Occupational Therapy', description: 'Holistic support for psychological & emotional wellness' },
+  { value: 'General Consultation', label: 'General Consultation', description: 'Initial intake and personalized therapy assessment' },
+];
 
 export default function AppointmentRequest() {
   usePageSEO({
@@ -314,23 +327,15 @@ export default function AppointmentRequest() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="gender" className="text-xs font-bold uppercase tracking-wider text-stone-400">Gender *</label>
-                      <div className="relative">
-                        <select 
-                          required
-                          id="gender"
-                          title="Gender"
-                          value={formData.gender}
-                          onChange={(e) => setFormData({...formData, gender: e.target.value})}
-                          className="w-full px-4 py-4 pr-10 bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all appearance-none cursor-pointer"
-                        >
-                          <option value="">Select Gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Prefer not to say</option>
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" size={18} />
-                      </div>
+                      <SelectDropdown
+                        id="gender"
+                        label="Gender"
+                        required
+                        placeholder="Select Gender"
+                        options={GENDER_OPTIONS}
+                        value={formData.gender}
+                        onChange={(val) => setFormData({ ...formData, gender: val })}
+                      />
                     </div>
                     <div className="space-y-2">
                       <label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-stone-400">Phone Number *</label>
@@ -456,23 +461,15 @@ export default function AppointmentRequest() {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-stone-700">Preferred Appointment Slot</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="space-y-2">
-                        <label htmlFor="serviceType" className="text-xs font-bold uppercase tracking-wider text-stone-400">Service Type *</label>
-                        <div className="relative">
-                          <select 
-                            required
-                            id="serviceType"
-                            title="Service Type"
-                            value={formData.serviceType}
-                            onChange={(e) => setFormData({...formData, serviceType: e.target.value})}
-                            className="w-full px-4 py-3 sm:py-4 pr-10 text-base bg-stone-50 border border-stone-100 rounded-2xl focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none transition-all appearance-none cursor-pointer"
-                          >
-                            <option value="">Select a service</option>
-                            <option value="Pediatrics OT">Pediatrics Occupational Therapy</option>
-                            <option value="Mental Health OT">Mental Health Occupational Therapy</option>
-                            <option value="General Consultation">General Consultation</option>
-                          </select>
-                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400" size={18} />
-                        </div>
+                        <SelectDropdown
+                          id="serviceType"
+                          label="Service Type"
+                          required
+                          placeholder="Select a service"
+                          options={SERVICE_TYPE_OPTIONS}
+                          value={formData.serviceType}
+                          onChange={(val) => setFormData({ ...formData, serviceType: val })}
+                        />
                       </div>
                       <div className="space-y-2">
                         <label htmlFor="preferredDate" className="text-xs font-bold uppercase tracking-wider text-stone-400">Preferred Date *</label>

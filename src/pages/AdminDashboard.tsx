@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent, MouseEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, FormEvent, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -7,36 +7,77 @@ import {
   XCircle, 
   Clock, 
   LogOut, 
-  User,
-  Phone,
-  Mail,
-  X,
-  MapPin,
-  ShieldCheck,
-  Plus,
-  Trash2,
-  Pencil,
-  EyeOff,
-  Sparkles,
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-  Check
+  User, 
+  Phone, 
+  Mail, 
+  X, 
+  MapPin, 
+  ShieldCheck, 
+  Plus, 
+  Trash2, 
+  Archive, 
+  Pencil, 
+  EyeOff, 
+  Sparkles, 
+  MessageSquare, 
+  ChevronDown, 
+  ChevronUp, 
+  Check, 
+  CheckCheck,
+  AlertTriangle, 
+  MoreHorizontal,
+  Undo2,
+  Filter,
+  Search,
+  ArrowUpDown
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Appointment, ImpactStory, ContactMessage } from '../types';
 import { api } from '../services/api';
 import { Button } from '../components/common/Button';
 import { FileDropzone } from '../components/common/FileDropzone';
+import { SelectDropdown } from '../components/common/SelectDropdown';
 import datLogo from '../assets/images/dat_logo.jpeg';
+
+const APPOINTMENT_SORT_OPTIONS = [
+  { value: 'date-desc', label: 'Date (Newest first)' },
+  { value: 'date-asc', label: 'Date (Oldest first)' },
+  { value: 'name-asc', label: 'Client Name (A-Z)' },
+  { value: 'name-desc', label: 'Client Name (Z-A)' },
+  { value: 'service', label: 'Service Type' },
+];
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'appointments' | 'stories' | 'messages'>('appointments');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [archivedAppointments, setArchivedAppointments] = useState<Appointment[]>([]);
   const [impactStories, setImpactStories] = useState<ImpactStory[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [showUnreadOnlyMessages, setShowUnreadOnlyMessages] = useState(false);
+  const [isMarkingAllMessagesRead, setIsMarkingAllMessagesRead] = useState(false);
   const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [filter, setFilter] = useState('All');
+  const [selectedApptIds, setSelectedApptIds] = useState<Set<string>>(new Set());
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isBulkCancelModalOpen, setIsBulkCancelModalOpen] = useState(false);
+  const [bulkCancelReason, setBulkCancelReason] = useState('');
+  const [isBulkActionRunning, setIsBulkActionRunning] = useState(false);
+  const [isDeletingApptId, setIsDeletingApptId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'All' | 'Pending' | 'Confirmed' | 'Cancelled' | 'Archived'>('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'service'>('date-desc');
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const [warningCountdownSeconds, setWarningCountdownSeconds] = useState(120);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [impactStatus, setImpactStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [editingImpactStoryId, setEditingImpactStoryId] = useState<string | null>(null);
   const [impactForm, setImpactForm] = useState({
@@ -50,7 +91,83 @@ export default function AdminDashboard() {
   });
   const [impactImageFiles, setImpactImageFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
+  const [revealedActionId, setRevealedActionId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
+
+  const handleTouchStart = (id: string) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setRevealedActionId(id);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  // 30-Minute Inactivity Session Manager with 2-Minute Pre-Logout Warning
+  // Total inactivity: 30 minutes (1800s). Warning triggers at 28 minutes (1680s), giving 120s countdown.
+  const WARNING_THRESHOLD_MS = 28 * 60 * 1000;
+  const WARNING_DURATION_SECONDS = 120;
+  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const showWarningRef = useRef(false);
+
+  const executeInactivityLogout = async () => {
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    setShowInactivityWarning(false);
+    showWarningRef.current = false;
+
+    try {
+      await api.logout();
+    } catch (err) {
+      // Ignore logout errors on timeout
+    }
+    toast('Session expired due to 30 minutes of inactivity', { icon: '⏱️' });
+    navigate('/');
+  };
+
+  const startWarningCountdown = () => {
+    setShowInactivityWarning(true);
+    showWarningRef.current = true;
+    setWarningCountdownSeconds(WARNING_DURATION_SECONDS);
+
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+    let remaining = WARNING_DURATION_SECONDS;
+    countdownIntervalRef.current = setInterval(() => {
+      remaining -= 1;
+      setWarningCountdownSeconds(remaining);
+      if (remaining <= 0) {
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+        executeInactivityLogout();
+      }
+    }, 1000);
+  };
+
+  const resetInactivitySession = () => {
+    // If the modal is already open, do not silently dismiss on passive mouse movement; user must click "Stay Logged In"
+    if (showWarningRef.current) return;
+
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+    warningTimerRef.current = setTimeout(() => {
+      startWarningCountdown();
+    }, WARNING_THRESHOLD_MS);
+  };
+
+  const handleStayLoggedIn = () => {
+    setShowInactivityWarning(false);
+    showWarningRef.current = false;
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    resetInactivitySession();
+    toast.success('Session extended');
+  };
 
   useEffect(() => {
     (async () => {
@@ -61,17 +178,36 @@ export default function AdminDashboard() {
       }
       fetchData();
     })();
+
+    // Start session timer
+    resetInactivitySession();
+
+    // User activity listeners
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    const handleUserActivity = () => {
+      resetInactivitySession();
+    };
+
+    activityEvents.forEach((evt) => window.addEventListener(evt, handleUserActivity, { passive: true }));
+
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      activityEvents.forEach((evt) => window.removeEventListener(evt, handleUserActivity));
+    };
   }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [appointments, stories, contacts] = await Promise.all([
+      const [appointmentsData, archivedData, stories, contacts] = await Promise.all([
         api.getAdminAppointments(),
+        api.getArchivedAppointments(),
         api.getAdminImpactStories(),
         api.getContacts(),
       ]);
-      setAppointments(appointments);
+      setAppointments(appointmentsData);
+      setArchivedAppointments(archivedData);
       setImpactStories(stories);
       setContactMessages(contacts);
     } catch (err) {
@@ -114,6 +250,21 @@ export default function AdminDashboard() {
       );
     } catch (err) {
       console.error('Failed to update message status:', err);
+    }
+  };
+
+  const handleMarkAllMessagesRead = async () => {
+    if (unreadMessagesCount === 0 || isMarkingAllMessagesRead) return;
+    setIsMarkingAllMessagesRead(true);
+    try {
+      await api.markAllContactsRead();
+      setContactMessages((prev) => prev.map((m) => ({ ...m, read: true })));
+      toast.success('All messages marked as read');
+    } catch (err: any) {
+      console.error('Failed to mark all messages as read:', err);
+      toast.error(err?.message || 'Failed to mark all as read');
+    } finally {
+      setIsMarkingAllMessagesRead(false);
     }
   };
 
@@ -179,30 +330,285 @@ export default function AdminDashboard() {
     }
   };
 
-  const updateStatus = async (id: string, status: Appointment['status']) => {
+  const handleConfirmAppointment = async (id: string) => {
+    const targetAppt = appointments.find((a) => a.id === id) || selectedAppointment;
+    const clientName = targetAppt?.fullName || 'Client';
+
     try {
-      const updated = await api.updateAppointmentStatus(id, status);
-      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: updated.status } : a));
+      const updated = await api.updateAppointmentStatus(id, 'Confirmed');
+      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: updated.status } : a)));
       if (selectedAppointment?.id === id) {
-        setSelectedAppointment(prev => prev ? { ...prev, status: updated.status } : null);
+        setSelectedAppointment((prev) => (prev ? { ...prev, status: updated.status } : null));
       }
-    } catch (err) {
-      console.error(err);
+      // Call edge function for notification with no reason required
+      await api.notifyStatusChange({ appointmentId: id, status: 'Confirmed' });
+      toast.success(`Appointment confirmed — email sent to ${clientName}`);
+    } catch (err: any) {
+      console.error('Failed to confirm appointment:', err);
+      toast.error(err?.message || 'Failed to confirm appointment');
+    }
+  };
+
+  const handleInitiateCancel = (appointment: Appointment) => {
+    setAppointmentToCancel(appointment);
+    setCancelReason('');
+  };
+
+  const handleCancelSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!appointmentToCancel || !cancelReason.trim()) return;
+
+    setIsCancelling(true);
+    const apptId = appointmentToCancel.id;
+    const reason = cancelReason.trim();
+
+    try {
+      const updated = await api.updateAppointmentStatus(apptId, 'Cancelled');
+      setAppointments((prev) => prev.map((a) => (a.id === apptId ? { ...a, status: updated.status } : a)));
+      if (selectedAppointment?.id === apptId) {
+        setSelectedAppointment((prev) => (prev ? { ...prev, status: updated.status } : null));
+      }
+      // Invoke edge function with reason
+      await api.notifyStatusChange({ appointmentId: apptId, status: 'Cancelled', reason });
+      setAppointmentToCancel(null);
+      setCancelReason('');
+      toast.success('Appointment cancelled — client notified');
+    } catch (err: any) {
+      console.error('Failed to cancel appointment:', err);
+      toast.error(err?.message || 'Failed to cancel appointment');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleArchiveAppointment = async (id: string) => {
+    setIsDeletingApptId(id);
+    try {
+      const updated = await api.setAppointmentArchived(id, true);
+      const target = appointments.find((a) => a.id === id) || updated;
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+      setArchivedAppointments((prev) => [target, ...prev.filter((a) => a.id !== id)]);
+      setSelectedApptIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      if (selectedAppointment?.id === id) {
+        setSelectedAppointment(null);
+      }
+      toast('Appointment archived', {
+        icon: '📁',
+      });
+    } catch (err: any) {
+      console.error('Failed to archive appointment:', err);
+      toast.error(err?.message || 'Failed to archive appointment');
+    } finally {
+      setIsDeletingApptId(null);
+    }
+  };
+
+  const handleUnarchiveAppointment = async (id: string) => {
+    setIsDeletingApptId(id);
+    try {
+      const updated = await api.setAppointmentArchived(id, false);
+      const target = archivedAppointments.find((a) => a.id === id) || updated;
+      setArchivedAppointments((prev) => prev.filter((a) => a.id !== id));
+      setAppointments((prev) => [target, ...prev.filter((a) => a.id !== id)]);
+      setSelectedApptIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      if (selectedAppointment?.id === id) {
+        setSelectedAppointment(null);
+      }
+      toast.success('Appointment restored to active list');
+    } catch (err: any) {
+      console.error('Failed to unarchive appointment:', err);
+      toast.error(err?.message || 'Failed to unarchive appointment');
+    } finally {
+      setIsDeletingApptId(null);
+    }
+  };
+
+  // Bulk Actions
+  const handleBulkConfirm = async () => {
+    const ids: string[] = Array.from(selectedApptIds);
+    if (ids.length === 0) return;
+
+    setIsBulkActionRunning(true);
+    try {
+      await api.bulkUpdateAppointmentStatus(ids, 'Confirmed');
+      setAppointments((prev) =>
+        prev.map((a) => (selectedApptIds.has(a.id) ? { ...a, status: 'Confirmed' } : a))
+      );
+      if (selectedAppointment && selectedApptIds.has(selectedAppointment.id)) {
+        setSelectedAppointment((prev) => (prev ? { ...prev, status: 'Confirmed' } : null));
+      }
+      await api.notifyBatchStatusChange({ ids, status: 'Confirmed' });
+      toast.success(`${ids.length} appointment${ids.length > 1 ? 's' : ''} confirmed`);
+      setSelectedApptIds(new Set());
+    } catch (err: any) {
+      console.error('Bulk confirm failed:', err);
+      toast.error(err?.message || 'Failed to confirm selected appointments');
+    } finally {
+      setIsBulkActionRunning(false);
+    }
+  };
+
+  const handleBulkCancelSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const ids: string[] = Array.from(selectedApptIds);
+    if (ids.length === 0 || !bulkCancelReason.trim()) return;
+
+    setIsBulkActionRunning(true);
+    const reason = bulkCancelReason.trim();
+
+    try {
+      await api.bulkUpdateAppointmentStatus(ids, 'Cancelled');
+      setAppointments((prev) =>
+        prev.map((a) => (selectedApptIds.has(a.id) ? { ...a, status: 'Cancelled' } : a))
+      );
+      if (selectedAppointment && selectedApptIds.has(selectedAppointment.id)) {
+        setSelectedAppointment((prev) => (prev ? { ...prev, status: 'Cancelled' } : null));
+      }
+      await api.notifyBatchStatusChange({ ids, status: 'Cancelled', reason });
+      toast.success(`${ids.length} appointment${ids.length > 1 ? 's' : ''} cancelled — clients notified`);
+      setIsBulkCancelModalOpen(false);
+      setBulkCancelReason('');
+      setSelectedApptIds(new Set());
+    } catch (err: any) {
+      console.error('Bulk cancel failed:', err);
+      toast.error(err?.message || 'Failed to cancel selected appointments');
+    } finally {
+      setIsBulkActionRunning(false);
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    const ids: string[] = Array.from(selectedApptIds);
+    if (ids.length === 0) return;
+
+    setIsBulkActionRunning(true);
+    try {
+      await api.bulkArchiveAppointments(ids, true);
+      const archivedSet = new Set(ids);
+      const moved = appointments.filter((a) => archivedSet.has(a.id));
+      setAppointments((prev) => prev.filter((a) => !archivedSet.has(a.id)));
+      setArchivedAppointments((prev) => [...moved, ...prev.filter((a) => !archivedSet.has(a.id))]);
+      if (selectedAppointment && archivedSet.has(selectedAppointment.id)) {
+        setSelectedAppointment(null);
+      }
+      toast(`${ids.length} appointment${ids.length > 1 ? 's' : ''} archived`, {
+        icon: '📁',
+      });
+      setSelectedApptIds(new Set());
+    } catch (err: any) {
+      console.error('Bulk archive failed:', err);
+      toast.error(err?.message || 'Failed to archive selected appointments');
+    } finally {
+      setIsBulkActionRunning(false);
+    }
+  };
+
+  const handleBulkUnarchive = async () => {
+    const ids: string[] = Array.from(selectedApptIds);
+    if (ids.length === 0) return;
+
+    setIsBulkActionRunning(true);
+    try {
+      await api.bulkArchiveAppointments(ids, false);
+      const unarchivedSet = new Set(ids);
+      const restored = archivedAppointments.filter((a) => unarchivedSet.has(a.id));
+      setArchivedAppointments((prev) => prev.filter((a) => !unarchivedSet.has(a.id)));
+      setAppointments((prev) => [...restored, ...prev.filter((a) => !unarchivedSet.has(a.id))]);
+      if (selectedAppointment && unarchivedSet.has(selectedAppointment.id)) {
+        setSelectedAppointment(null);
+      }
+      toast.success(`${ids.length} appointment${ids.length > 1 ? 's' : ''} restored`);
+      setSelectedApptIds(new Set());
+    } catch (err: any) {
+      console.error('Bulk unarchive failed:', err);
+      toast.error(err?.message || 'Failed to restore selected appointments');
+    } finally {
+      setIsBulkActionRunning(false);
     }
   };
 
   const handleLogout = async () => {
     await api.logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const pendingCount = appointments.filter((a) => a.status === 'Pending').length;
-  const storiesCount = impactStories.length;
-  const unreadMessagesCount = contactMessages.filter((m) => !m.read).length;
+  const archivedCount = archivedAppointments.length;
+  const storiesCount = impactStories.filter((s) => !s.published).length;
+  const unreadMessagesCount = contactMessages.filter((m) => !m.read && !m.archived).length;
+  const selectedCount = selectedApptIds.size;
 
-  const filteredAppointments = filter === 'All' 
-    ? appointments 
-    : appointments.filter(a => a.status === filter);
+  const filteredAppointments = useMemo(() => {
+    // 1. Status Filter
+    let result = filter === 'Archived'
+      ? archivedAppointments
+      : filter === 'All' 
+        ? appointments 
+        : appointments.filter((a) => a.status === filter);
+
+    // 2. Search query filter (client full_name case-insensitive)
+    if (debouncedSearchQuery.trim()) {
+      const q = debouncedSearchQuery.toLowerCase().trim();
+      result = result.filter((a) => a.fullName.toLowerCase().includes(q));
+    }
+
+    // 3. Sort
+    return [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.fullName.localeCompare(b.fullName);
+        case 'name-desc':
+          return b.fullName.localeCompare(a.fullName);
+        case 'service':
+          return a.serviceType.localeCompare(b.serviceType);
+        case 'date-asc':
+          return (a.preferredDate || '').localeCompare(b.preferredDate || '');
+        case 'date-desc':
+        default:
+          return (b.preferredDate || '').localeCompare(a.preferredDate || '');
+      }
+    });
+  }, [appointments, archivedAppointments, filter, debouncedSearchQuery, sortBy]);
+
+  const allFilteredSelected = filteredAppointments.length > 0 && filteredAppointments.every((a) => selectedApptIds.has(a.id));
+  const someFilteredSelected = filteredAppointments.some((a) => selectedApptIds.has(a.id));
+
+  const handleToggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedApptIds((prev) => {
+        const next = new Set(prev);
+        filteredAppointments.forEach((a) => next.delete(a.id));
+        return next;
+      });
+    } else {
+      setSelectedApptIds((prev) => {
+        const next = new Set(prev);
+        filteredAppointments.forEach((a) => next.add(a.id));
+        return next;
+      });
+    }
+  };
+
+  const handleToggleSelectRow = (id: string, e: MouseEvent) => {
+    e.stopPropagation();
+    setSelectedApptIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -211,7 +617,7 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-cream font-sans text-charcoal pb-24 selection:bg-gold selection:text-charcoal relative">
       {/* Top Navigation Bar */}
       <nav className="bg-charcoal text-white sticky top-0 z-[60] shadow-lg border-b border-gold/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4">
@@ -278,10 +684,14 @@ export default function AdminDashboard() {
                 <span 
                   className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
                     activeTab === 'stories'
-                      ? 'bg-black/20 text-charcoal'
-                      : 'bg-white/10 text-white/70'
+                      ? storiesCount > 0
+                        ? 'bg-charcoal text-gold font-black shadow-inner'
+                        : 'bg-black/20 text-charcoal'
+                      : storiesCount > 0
+                        ? 'bg-amber-400 text-charcoal font-black'
+                        : 'bg-white/10 text-white/70'
                   }`}
-                  title={`${storiesCount} total stories`}
+                  title={`${storiesCount} unpublished draft stories`}
                 >
                   {storiesCount}
                 </span>
@@ -315,16 +725,26 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Right: Logout Button with guaranteed touch target */}
-            <div className="flex items-center">
-              <Button 
-                variant="ghost"
+            {/* Right: View Site & Logout Buttons */}
+            <div className="flex items-center gap-2">
+              <button 
+                type="button"
+                onClick={() => navigate('/')}
+                className="text-stone-300 hover:text-white hover:bg-white/10 border border-white/10 rounded-xl px-3 sm:px-3.5 py-2 text-xs sm:text-sm min-h-[40px] flex items-center gap-1.5 font-bold transition-all"
+                title="Return to main website"
+              >
+                <span>View Site</span>
+              </button>
+
+              <button 
+                type="button"
                 onClick={handleLogout}
-                className="shrink-0 text-red-400 hover:bg-red-400/10 hover:text-red-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm min-h-[44px] flex items-center gap-2 font-bold"
+                className="shrink-0 text-red-500 bg-red-500/10 hover:bg-red-600 hover:text-white active:bg-red-700 active:text-white border border-red-500/20 hover:border-red-600 rounded-xl px-3.5 sm:px-4 py-2 text-xs sm:text-sm min-h-[40px] flex items-center gap-2 font-bold transition-all shadow-sm cursor-pointer"
+                title="Log out of Admin Panel"
               >
                 <LogOut size={16} />
                 <span>Logout</span>
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -371,8 +791,12 @@ export default function AdminDashboard() {
                 <span 
                   className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                     activeTab === 'stories'
-                      ? 'bg-black/20 text-charcoal'
-                      : 'bg-white/10 text-white/70'
+                      ? storiesCount > 0
+                        ? 'bg-charcoal text-gold font-bold'
+                        : 'bg-black/20 text-charcoal'
+                      : storiesCount > 0
+                        ? 'bg-amber-400 text-charcoal'
+                        : 'bg-white/10 text-white/70'
                   }`}
                 >
                   {storiesCount}
@@ -394,7 +818,7 @@ export default function AdminDashboard() {
                   className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                     activeTab === 'messages'
                       ? unreadMessagesCount > 0
-                        ? 'bg-charcoal text-gold'
+                        ? 'bg-charcoal text-gold' 
                         : 'bg-black/20 text-charcoal'
                       : unreadMessagesCount > 0
                         ? 'bg-amber-400 text-charcoal'
@@ -413,38 +837,102 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto p-4 sm:p-8 md:p-12">
         {activeTab === 'appointments' && (
           <div>
-            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8 sm:mb-12">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Appointment Requests</h1>
-                <p className="text-stone-500 mt-2">Manage requests and view client intake data</p>
+            <header className="space-y-4 mb-6 sm:mb-8">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Appointment Requests</h1>
+                  <p className="text-stone-500 mt-1">Manage requests and view client intake data</p>
+                </div>
               </div>
               
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2">
-                {['All', 'Pending', 'Confirmed', 'Cancelled'].map((f) => (
-                  <Button
-                    key={f}
-                    variant={filter === f ? 'dark' : 'secondary'}
-                    onClick={() => setFilter(f)}
-                    className={`px-4 py-2 rounded-lg text-xs uppercase tracking-widest min-h-[40px] ${
-                      filter === f 
-                        ? 'shadow-md' 
-                        : 'text-stone-500 hover:bg-stone-100'
-                    }`}
-                  >
-                    {f}
-                  </Button>
-                ))}
+              {/* Toolbar: Status Tabs, Search, and Sort */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2">
+                {/* Status Tabs */}
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {(['All', 'Pending', 'Confirmed', 'Cancelled', 'Archived'] as const).map((f) => (
+                    <Button
+                      key={f}
+                      variant={filter === f ? 'dark' : 'secondary'}
+                      onClick={() => {
+                        setFilter(f);
+                        setSelectedApptIds(new Set());
+                      }}
+                      className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs uppercase tracking-wider font-bold min-h-[38px] flex items-center gap-1.5 ${
+                        filter === f 
+                          ? 'shadow-sm' 
+                          : 'text-stone-500 hover:bg-stone-100'
+                      }`}
+                    >
+                      <span>{f}</span>
+                      {f === 'Archived' && archivedCount > 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                          filter === 'Archived' ? 'bg-gold text-charcoal' : 'bg-stone-200 text-stone-600'
+                        }`}>
+                          {archivedCount}
+                        </span>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Search & Sort Controls */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  {/* Search Input (Debounced 300ms client-side filter) */}
+                  <div className="relative min-w-[220px] sm:w-64">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by client name..."
+                      className="w-full pl-9 pr-8 py-2 bg-white border border-stone-200 rounded-xl text-xs sm:text-sm text-charcoal placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all shadow-sm min-h-[38px]"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5 rounded-full"
+                        title="Clear search"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="min-w-[190px]">
+                    <SelectDropdown
+                      id="appointment-sort"
+                      options={APPOINTMENT_SORT_OPTIONS}
+                      value={sortBy}
+                      onChange={(val) => setSortBy(val as any)}
+                      triggerClassName="py-2 px-3.5 bg-white border-stone-200 rounded-xl text-xs sm:text-sm font-medium min-h-[38px] shadow-sm"
+                      menuClassName="min-w-[200px]"
+                    />
+                  </div>
+                </div>
               </div>
             </header>
 
             {/* Table */}
             <div className="bg-white rounded-[2rem] border border-stone-200 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[72vh] md:max-h-none overflow-y-auto">
               <table className="w-full min-w-[760px] text-left border-collapse">
-                <thead>
+                <thead className="sticky top-0 z-20 bg-stone-50 shadow-[0_1px_0_0_rgba(231,229,228,1)]">
                   <tr className="bg-stone-50 border-b border-stone-200">
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Client</th>
+                    <th className="sticky left-0 z-30 bg-stone-50 pl-6 pr-3 py-4 text-xs font-bold uppercase tracking-wider text-stone-400 w-12 shadow-[1px_0_0_0_rgba(231,229,228,1)]">
+                      <input
+                        type="checkbox"
+                        checked={allFilteredSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someFilteredSelected && !allFilteredSelected;
+                        }}
+                        onChange={handleToggleSelectAll}
+                        className="w-4 h-4 rounded border-stone-300 text-gold focus:ring-gold/30 cursor-pointer accent-gold"
+                        title="Select all visible appointments"
+                      />
+                    </th>
+                    <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Client</th>
                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Service</th>
                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Schedule</th>
                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-stone-400">Status</th>
@@ -454,22 +942,39 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-stone-100">
                   {filteredAppointments.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-stone-400 italic">No appointments found</td>
+                      <td colSpan={6} className="px-6 py-12 text-center text-stone-400 italic">No appointments found</td>
                     </tr>
-                  ) : filteredAppointments.map((app) => (
+                  ) : filteredAppointments.map((app) => {
+                    const isSelected = selectedApptIds.has(app.id);
+                    return (
                     <tr 
                       key={app.id} 
-                      className="hover:bg-stone-50 transition-colors cursor-pointer"
+                      className={`hover:bg-stone-50 transition-colors cursor-pointer group ${isSelected ? 'bg-gold/5' : ''}`}
                       onClick={() => setSelectedAppointment(app)}
+                      onTouchStart={() => handleTouchStart(app.id)}
+                      onTouchEnd={handleTouchEnd}
                     >
-                      <td className="px-6 py-5">
+                      <td 
+                        className={`sticky left-0 z-10 pl-6 pr-3 py-5 shadow-[1px_0_0_0_rgba(231,229,228,0.8)] transition-colors ${
+                          isSelected ? 'bg-gold/10' : 'bg-white group-hover:bg-stone-50'
+                        }`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleToggleSelectRow(app.id, e as any)}
+                          className="w-4 h-4 rounded border-stone-300 text-gold focus:ring-gold/30 cursor-pointer accent-gold"
+                        />
+                      </td>
+                      <td className="px-4 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center text-stone-500">
+                          <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center text-stone-500 shrink-0">
                             <User size={18} />
                           </div>
-                          <div>
-                            <p className="font-bold text-sm">{app.fullName}</p>
-                            <p className="text-xs text-stone-400">{app.email}</p>
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm text-charcoal truncate">{app.fullName}</p>
+                            <p className="text-xs text-stone-400 truncate">{app.email}</p>
                           </div>
                         </div>
                       </td>
@@ -497,25 +1002,121 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-5 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => updateStatus(app.id, 'Confirmed')}
-                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                            title="Confirm appointment"
-                          >
-                            <CheckCircle2 size={18} />
-                          </button>
-                          <button 
-                            onClick={() => updateStatus(app.id, 'Cancelled')}
-                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                            title="Cancel appointment"
-                          >
-                            <XCircle size={18} />
-                          </button>
+                        {/* Mobile Touch Actions (<768px) */}
+                        <div className="flex md:hidden justify-end items-center gap-1.5">
+                          {filter === 'Archived' ? (
+                            <button
+                              onClick={() => handleUnarchiveAppointment(app.id)}
+                              disabled={isDeletingApptId === app.id}
+                              className="px-2.5 py-1.5 text-gold hover:bg-gold/10 border border-gold/30 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
+                              title="Unarchive appointment"
+                            >
+                              <Undo2 size={14} />
+                              <span>Unarchive</span>
+                            </button>
+                          ) : revealedActionId === app.id ? (
+                            <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg">
+                              <button
+                                onClick={() => handleArchiveAppointment(app.id)}
+                                disabled={isDeletingApptId === app.id}
+                                className="p-1.5 text-stone-600 hover:bg-stone-200 rounded-md transition-all flex items-center gap-1 text-xs font-bold"
+                                title="Archive appointment"
+                              >
+                                <Archive size={15} />
+                                <span>Archive</span>
+                              </button>
+                              <button
+                                onClick={() => setRevealedActionId(null)}
+                                className="p-1 text-stone-400 hover:text-stone-600 rounded-md"
+                                title="Close"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              {app.status === 'Pending' ? (
+                                <>
+                                  <button 
+                                    onClick={() => handleConfirmAppointment(app.id)}
+                                    className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                    title="Confirm appointment"
+                                  >
+                                    <CheckCircle2 size={18} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleInitiateCancel(app)}
+                                    className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                    title="Cancel appointment"
+                                  >
+                                    <XCircle size={18} />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => handleArchiveAppointment(app.id)}
+                                  disabled={isDeletingApptId === app.id}
+                                  className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-all"
+                                  title="Archive appointment"
+                                >
+                                  <Archive size={17} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setRevealedActionId(app.id)}
+                                className="p-1.5 text-stone-400 hover:text-stone-600 rounded-lg"
+                                title="More actions (tap or long-press)"
+                              >
+                                <MoreHorizontal size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Desktop Pointer Actions (>=768px) */}
+                        <div className="hidden md:flex justify-end gap-2">
+                          {filter === 'Archived' ? (
+                            <button
+                              onClick={() => handleUnarchiveAppointment(app.id)}
+                              disabled={isDeletingApptId === app.id}
+                              className="px-3 py-1.5 text-gold hover:bg-gold/10 border border-gold/30 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
+                              title="Unarchive appointment"
+                            >
+                              <Undo2 size={15} />
+                              <span>Unarchive</span>
+                            </button>
+                          ) : app.status === 'Pending' ? (
+                            <>
+                              <button 
+                                onClick={() => handleConfirmAppointment(app.id)}
+                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                title="Confirm appointment"
+                              >
+                                <CheckCircle2 size={18} />
+                              </button>
+                              <button 
+                                onClick={() => handleInitiateCancel(app)}
+                                className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                title="Cancel appointment"
+                              >
+                                <XCircle size={18} />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleArchiveAppointment(app.id)}
+                              disabled={isDeletingApptId === app.id}
+                              className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-all"
+                              title="Archive appointment"
+                            >
+                              <Archive size={17} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
               </div>
@@ -735,121 +1336,194 @@ export default function AdminDashboard() {
 
         {activeTab === 'messages' && (
           <div>
-            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8 sm:mb-12">
+            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-6 sm:mb-8">
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Contact Messages</h1>
                 <p className="text-stone-500 mt-2">Manage incoming inquiries and outreach notes from the contact form</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
-                  {contactMessages.length} Total Messages
-                </span>
-                {unreadMessagesCount > 0 && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
-                    {unreadMessagesCount} unread
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Filter: Show unread only */}
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowUnreadOnlyMessages((prev) => !prev)}
+                  className={`text-xs px-3 py-2 min-h-[36px] rounded-xl border flex items-center gap-2 font-bold transition-all ${
+                    showUnreadOnlyMessages
+                      ? 'bg-gold/15 border-gold text-charcoal shadow-sm'
+                      : 'border-stone-200 text-stone-600 hover:bg-stone-100'
+                  }`}
+                  title="Filter to show unread messages only"
+                >
+                  <Filter size={14} className={showUnreadOnlyMessages ? 'text-gold-dark' : 'text-stone-400'} />
+                  <span>Show unread only</span>
+                  {showUnreadOnlyMessages && (
+                    <span className="w-2 h-2 rounded-full bg-gold inline-block" />
+                  )}
+                </Button>
+
+                {/* Action: Mark all as read */}
+                <Button
+                  variant="secondary"
+                  onClick={handleMarkAllMessagesRead}
+                  disabled={unreadMessagesCount === 0 || isMarkingAllMessagesRead}
+                  className="text-xs px-3.5 py-2 min-h-[36px] rounded-xl border border-stone-200 text-stone-700 hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 font-bold"
+                  title="Mark all unread messages as read"
+                >
+                  <CheckCheck size={15} className="text-emerald-600" />
+                  <span>{isMarkingAllMessagesRead ? 'Marking...' : 'Mark all as read'}</span>
+                </Button>
+
+                <div className="flex items-center gap-2 pl-2 border-l border-stone-200">
+                  <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+                    {contactMessages.length} Total
                   </span>
-                )}
+                  {unreadMessagesCount > 0 && (
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                      {unreadMessagesCount} unread
+                    </span>
+                  )}
+                </div>
               </div>
             </header>
 
-            {contactMessages.length === 0 ? (
-              <div className="bg-white rounded-[2rem] border border-stone-200 p-12 text-center text-stone-400 italic shadow-sm">
-                No contact messages yet.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {contactMessages.map((msg) => {
-                  const isExpanded = expandedMessageIds.has(msg.id);
-                  return (
-                    <div 
-                      key={msg.id}
-                      onClick={() => handleToggleMessageExpand(msg)}
-                      className={`bg-white rounded-[1.75rem] border transition-all cursor-pointer shadow-sm overflow-hidden ${
-                        msg.read 
-                          ? 'border-stone-200 hover:border-stone-300' 
-                          : 'border-gold/60 bg-gold/[0.02] ring-1 ring-gold/30'
-                      }`}
-                    >
-                      <div className="p-5 sm:p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                              msg.read ? 'bg-stone-100 text-stone-500' : 'bg-gold/20 text-gold-dark'
+            {(() => {
+              const displayedMessages = showUnreadOnlyMessages 
+                ? contactMessages.filter((m) => !m.read && !m.archived) 
+                : contactMessages;
+
+              if (displayedMessages.length === 0) {
+                return (
+                  <div className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 p-8 sm:p-12 text-center text-stone-400 italic shadow-sm">
+                    {showUnreadOnlyMessages ? 'No unread messages.' : 'No contact messages yet.'}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-1.5 sm:space-y-2">
+                  {displayedMessages.map((msg) => {
+                    const isExpanded = expandedMessageIds.has(msg.id);
+                    return (
+                      <div 
+                        key={msg.id}
+                        className={`bg-white rounded-xl sm:rounded-2xl border transition-all shadow-sm overflow-hidden ${
+                          msg.read 
+                            ? 'border-stone-200 hover:border-stone-300 bg-stone-50/40 opacity-80 hover:opacity-100' 
+                            : 'border-gold/60 bg-white ring-1 ring-gold/30 shadow-md'
+                        }`}
+                      >
+                        {/* Compact Single-Row Header (~48-54px height) */}
+                        <div 
+                          onClick={() => handleToggleMessageExpand(msg)}
+                          className="px-3 py-2.5 sm:px-4 sm:py-3 cursor-pointer hover:bg-stone-50/80 transition-colors flex items-center justify-between gap-3 select-none"
+                        >
+                          {/* Left: Avatar + Sender Info + Subject */}
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                            {/* Smaller Avatar */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              msg.read ? 'bg-stone-100 text-stone-400' : 'bg-gold/20 text-gold-dark'
                             }`}>
-                              <MessageSquare size={18} />
+                              <MessageSquare size={14} />
                             </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2.5 flex-wrap">
-                                <h3 className="text-base font-bold text-charcoal">{msg.name}</h3>
+
+                            {/* Sender Name + Email inline / tightly stacked */}
+                            <div className="min-w-0 w-36 sm:w-48 shrink-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-xs sm:text-sm font-semibold truncate ${msg.read ? 'text-stone-700 font-medium' : 'text-charcoal font-bold'}`}>
+                                  {msg.name}
+                                </span>
                                 {!msg.read && (
-                                  <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-charcoal shadow-sm">
+                                  <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded-full bg-amber-400 text-charcoal shadow-sm shrink-0">
                                     New
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-stone-400 truncate">{msg.email}</p>
+                              <p className="text-[11px] text-stone-400 truncate">{msg.email}</p>
+                            </div>
+
+                            {/* Subject Line Only (Truncated with ellipsis) */}
+                            <div className="min-w-0 flex-1 hidden md:flex items-center gap-1.5 pr-2">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-gold shrink-0">Subject:</span>
+                              <span className={`text-xs sm:text-sm truncate ${msg.read ? 'text-stone-600' : 'text-charcoal font-medium'}`}>
+                                {msg.subject}
+                              </span>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between sm:justify-end gap-3 self-stretch sm:self-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
-                            <span className="text-xs text-stone-400">
+                          {/* Right: Timestamp, Mark Read/Unread Action, Chevron */}
+                          <div className="flex items-center gap-2 sm:gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-[11px] text-stone-400 hidden sm:inline whitespace-nowrap">
                               {new Date(msg.createdAt).toLocaleString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+
+                            <Button
+                              variant="ghost"
+                              onClick={(e) => handleMarkMessageRead(e, msg.id, !msg.read)}
+                              className="text-xs py-1 px-2 min-h-[28px] rounded-lg text-stone-500 hover:text-charcoal hover:bg-stone-100 flex items-center gap-1 font-medium transition-colors"
+                              title={msg.read ? "Mark as unread" : "Mark as read"}
+                            >
+                              <Check size={13} className={msg.read ? "text-emerald-600" : "text-stone-400"} />
+                              <span className="text-[11px] whitespace-nowrap">
+                                {msg.read ? 'Mark as Unread' : 'Mark as Read'}
+                              </span>
+                            </Button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMessageExpand(msg)}
+                              className="p-1 text-stone-400 hover:text-stone-600 rounded-lg transition-colors cursor-pointer"
+                              title={isExpanded ? "Collapse message" : "Expand message"}
+                            >
+                              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Mobile Subject when collapsed */}
+                        <div 
+                          onClick={() => handleToggleMessageExpand(msg)}
+                          className="md:hidden px-3 pb-2 -mt-1 cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gold shrink-0">Subject:</span>
+                          <span className={`text-xs truncate ${msg.read ? 'text-stone-600' : 'text-charcoal font-medium'}`}>
+                            {msg.subject}
+                          </span>
+                        </div>
+
+                        {/* Expanded Content Drawer */}
+                        {isExpanded && (
+                          <div className="px-4 py-3 sm:px-5 sm:py-4 bg-stone-50/70 border-t border-stone-100 space-y-2">
+                            <div className="md:hidden flex items-center gap-2 pb-1 border-b border-stone-200/60">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-gold">Subject:</span>
+                              <span className="text-xs font-semibold text-charcoal">{msg.subject}</span>
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-1">Message:</p>
+                              <p className="text-xs sm:text-sm text-stone-700 leading-relaxed whitespace-pre-wrap bg-white p-3.5 rounded-xl border border-stone-200/80 shadow-inner">
+                                {msg.message}
+                              </p>
+                            </div>
+                            <div className="sm:hidden text-[10px] text-stone-400 text-right pt-1">
+                              Received {new Date(msg.createdAt).toLocaleString(undefined, {
                                 month: 'short',
                                 day: 'numeric',
                                 year: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })}
-                            </span>
-                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                variant="ghost"
-                                onClick={(e) => handleMarkMessageRead(e, msg.id, !msg.read)}
-                                className="text-xs py-1 px-2.5 min-h-[32px] rounded-lg text-stone-500 hover:text-charcoal hover:bg-stone-100 flex items-center gap-1.5"
-                                title={msg.read ? "Mark as unread" : "Mark as read"}
-                              >
-                                <Check size={14} className={msg.read ? "text-emerald-600" : "text-stone-400"} />
-                                <span>{msg.read ? 'Mark Unread' : 'Mark Read'}</span>
-                              </Button>
-                              <div className="p-1.5 text-stone-400 rounded-lg">
-                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                              </div>
                             </div>
                           </div>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-stone-100">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-gold">Subject:</span>
-                            <span className="text-sm font-semibold text-charcoal">{msg.subject}</span>
-                          </div>
-                          
-                          <p className={`text-sm text-stone-600 leading-relaxed whitespace-pre-wrap ${
-                            isExpanded ? '' : 'line-clamp-2'
-                          }`}>
-                            {msg.message}
-                          </p>
-
-                          {!isExpanded && msg.message.length > 120 && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleMessageExpand(msg);
-                              }}
-                              className="mt-2 text-xs font-bold text-gold hover:text-gold-dark flex items-center gap-1 cursor-pointer"
-                            >
-                              <span>Read full message</span>
-                              <ChevronDown size={14} />
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -908,22 +1582,48 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                     <div className="flex w-full sm:w-auto gap-2">
-                    <Button 
-                      variant="primary"
-                      onClick={() => updateStatus(selectedAppointment.id, 'Confirmed')}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold min-h-[40px]"
-                      title="Confirm appointment"
-                    >
-                      Confirm
-                    </Button>
-                    <Button 
-                      variant="dark"
-                      onClick={() => updateStatus(selectedAppointment.id, 'Cancelled')}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-bold min-h-[40px]"
-                      title="Cancel appointment"
-                    >
-                      Cancel
-                    </Button>
+                    {selectedAppointment.archived ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleUnarchiveAppointment(selectedAppointment.id)}
+                        disabled={isDeletingApptId === selectedAppointment.id}
+                        className="flex-1 sm:flex-none px-4 py-2 text-gold hover:bg-gold/10 border border-gold/40 rounded-lg text-sm font-bold min-h-[40px] flex items-center gap-2"
+                        title="Unarchive appointment"
+                      >
+                        <Undo2 size={16} />
+                        <span>Unarchive</span>
+                      </Button>
+                    ) : selectedAppointment.status === 'Pending' ? (
+                      <>
+                        <Button 
+                          variant="primary"
+                          onClick={() => handleConfirmAppointment(selectedAppointment.id)}
+                          className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold min-h-[40px]"
+                          title="Confirm appointment"
+                        >
+                          Confirm
+                        </Button>
+                        <Button 
+                          variant="dark"
+                          onClick={() => handleInitiateCancel(selectedAppointment)}
+                          className="flex-1 sm:flex-none px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-bold min-h-[40px]"
+                          title="Cancel appointment"
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleArchiveAppointment(selectedAppointment.id)}
+                        disabled={isDeletingApptId === selectedAppointment.id}
+                        className="flex-1 sm:flex-none px-4 py-2 text-stone-700 hover:bg-stone-100 border border-stone-200 rounded-lg text-sm font-bold min-h-[40px] flex items-center gap-2"
+                        title="Archive appointment"
+                      >
+                        <Archive size={16} />
+                        <span>Archive</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1017,6 +1717,306 @@ export default function AdminDashboard() {
                   </div>
                   <p>Submitted on {new Date(selectedAppointment.createdAt).toLocaleString()}</p>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Cancellation Reason Modal */}
+      <AnimatePresence>
+        {appointmentToCancel && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isCancelling && setAppointmentToCancel(null)}
+              className="absolute inset-0 bg-charcoal/80 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl z-10 border border-stone-200"
+            >
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-charcoal">Cancel Appointment</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Client: <span className="font-semibold text-stone-700">{appointmentToCancel.fullName}</span> ({appointmentToCancel.preferredDate})
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  disabled={isCancelling}
+                  onClick={() => setAppointmentToCancel(null)}
+                  className="text-stone-400 hover:text-stone-600 p-1.5 rounded-lg hover:bg-stone-100 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCancelSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
+                    Cancellation Reason <span className="text-rose-500">*</span>
+                  </label>
+                  <p className="text-xs text-stone-500">
+                    Please explain why this appointment is being cancelled. This reason will be logged and included in client notification updates.
+                  </p>
+                  <textarea
+                    required
+                    rows={4}
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="e.g. Schedule conflict, client unreachable, therapist unavailable on selected date..."
+                    className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none text-sm leading-relaxed transition-all resize-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={isCancelling}
+                    onClick={() => setAppointmentToCancel(null)}
+                    className="px-5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-100 text-sm font-bold"
+                  >
+                    Keep Appointment
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="dark"
+                    disabled={isCancelling || !cancelReason.trim()}
+                    className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Cancellation Modal (Shared reason for all selected appointments) */}
+      <AnimatePresence>
+        {isBulkCancelModalOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isBulkActionRunning && setIsBulkCancelModalOpen(false)}
+              className="absolute inset-0 bg-charcoal/80 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl z-10 border border-stone-200"
+            >
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-charcoal">Cancel {selectedApptIds.size} Appointments</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      A single reason will be recorded and emailed to all selected clients.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  disabled={isBulkActionRunning}
+                  onClick={() => setIsBulkCancelModalOpen(false)}
+                  className="text-stone-400 hover:text-stone-600 p-1.5 rounded-lg hover:bg-stone-100 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleBulkCancelSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
+                    Shared Cancellation Reason <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={bulkCancelReason}
+                    onChange={(e) => setBulkCancelReason(e.target.value)}
+                    placeholder="e.g. Clinic closure due to unforeseen emergency, team training scheduled..."
+                    className="w-full p-4 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none text-sm leading-relaxed transition-all resize-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={isBulkActionRunning}
+                    onClick={() => setIsBulkCancelModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl text-stone-600 hover:bg-stone-100 text-sm font-bold"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="dark"
+                    disabled={isBulkActionRunning || !bulkCancelReason.trim()}
+                    className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isBulkActionRunning ? 'Cancelling...' : `Cancel All (${selectedApptIds.size})`}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Bulk Action Bar */}
+      <AnimatePresence>
+        {activeTab === 'appointments' && selectedApptIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] max-w-xl w-[92vw] sm:w-auto"
+          >
+            <div className="bg-charcoal text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gold/40 flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <span className="bg-gold text-charcoal font-black text-xs px-2.5 py-1 rounded-full shadow-sm">
+                  {selectedApptIds.size}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-cream">Selected</span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {filter === 'Archived' ? (
+                  <button
+                    type="button"
+                    disabled={isBulkActionRunning}
+                    onClick={handleBulkUnarchive}
+                    className="px-3.5 py-2 bg-gold hover:bg-gold-light text-charcoal text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                  >
+                    <Undo2 size={14} />
+                    <span>Unarchive All</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isBulkActionRunning}
+                      onClick={handleBulkConfirm}
+                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>Confirm All</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isBulkActionRunning}
+                      onClick={() => {
+                        setBulkCancelReason('');
+                        setIsBulkCancelModalOpen(true);
+                      }}
+                      className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                    >
+                      <XCircle size={14} />
+                      <span>Cancel All</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isBulkActionRunning}
+                      onClick={handleBulkArchive}
+                      className="px-3 py-2 bg-stone-700 hover:bg-stone-600 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                    >
+                      <Archive size={14} />
+                      <span>Archive All</span>
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  disabled={isBulkActionRunning}
+                  onClick={() => setSelectedApptIds(new Set())}
+                  className="p-1.5 text-white/60 hover:text-white rounded-lg transition-colors ml-1"
+                  title="Clear selection"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pre-Logout Inactivity Warning Modal */}
+      <AnimatePresence>
+        {showInactivityWarning && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-charcoal/80 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl z-10 border border-stone-200 text-center"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-5 shadow-sm">
+                <Clock size={32} className="animate-pulse" />
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-bold text-charcoal">Session Expiring Soon</h3>
+              <p className="text-stone-500 text-sm mt-2 leading-relaxed">
+                You have been inactive for nearly 30 minutes. For patient data security, your session will automatically end in:
+              </p>
+
+              <div className="my-6 py-4 px-6 bg-stone-50 border border-stone-200/80 rounded-2xl">
+                <span className="text-3xl sm:text-4xl font-black text-amber-600 font-mono tracking-wider">
+                  {Math.floor(warningCountdownSeconds / 60)}:
+                  {(warningCountdownSeconds % 60).toString().padStart(2, '0')}
+                </span>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400 mt-1">Remaining</p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={executeInactivityLogout}
+                  className="flex-1 py-3 px-4 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-100 text-xs sm:text-sm font-bold transition-all cursor-pointer"
+                >
+                  Log Out Now
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStayLoggedIn}
+                  className="flex-1 py-3 px-4 rounded-xl bg-gold hover:bg-gold-light text-charcoal text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer active:scale-[0.98]"
+                >
+                  Stay Logged In
+                </button>
               </div>
             </motion.div>
           </div>

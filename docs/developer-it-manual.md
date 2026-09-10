@@ -74,21 +74,33 @@ Recommended commands:
   - additional images shown as clickable thumbnails
 
 ## 8. Auth and Access Model
-- Admin access is based on signed-in user and configured admin email match.
+- Admin access is based on signed-in user and configured admin email match (`VITE_ADMIN_EMAIL`).
+- Admin session management:
+  - Active session auto-redirects from `/login` directly to `/admin`.
+  - 30-minute inactivity timer with interactive 2-minute pre-logout warning modal.
 - Public users can submit forms and read published impact stories only.
 - Admin-only operations:
-  - read all appointments
-  - update appointment status
-  - create/update/delete impact stories
-  - upload/delete impact images
+  - Read all appointments (active + archived views)
+  - Batch / single update appointment status
+  - Soft-archive / restore appointments & contacts
+  - Read and manage all contact messages (mark read/unread)
+  - Create/update/delete impact stories
+  - Upload/delete impact images
 
-## 9. Deployment Checklist
-- Environment variables set in hosting provider.
-- Supabase SQL and policy scripts applied.
+## 9. Edge Functions & Email Notifications
+- **`notify-status-change`**:
+  - Provider: Resend (`RESEND_API_KEY` secret).
+  - Handles single notifications (`record_id: string`) and batch operations (`record_ids: string[]`).
+  - Fetches records in batch with `.in('id', record_ids)` and sends via Resend's batch endpoint `/emails/batch`.
+
+## 10. Deployment Checklist
+- Environment variables set in hosting provider (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_ADMIN_EMAIL`, `VITE_IMPACT_STORY_BUCKET`).
+- Supabase Edge Function secret set: `RESEND_API_KEY`.
+- Supabase SQL and policy scripts applied (including `read` and `archived` columns).
 - Admin account created and tested.
 - End-to-end test:
-  - login
-  - appointment submission and status change
+  - login / auto-redirect
+  - appointment submission, status changes, and cancellation email dispatch
   - impact story create/edit/delete with image upload
 - Verify production build artifacts and routing fallback for SPA.
 

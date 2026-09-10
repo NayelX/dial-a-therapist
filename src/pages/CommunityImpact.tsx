@@ -100,7 +100,14 @@ export default function CommunityImpact() {
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="relative py-24 md:py-32 bg-charcoal text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-60" />
+        <div className="absolute inset-0">
+          <img 
+            src="https://images.unsplash.com/photo-1620147461831-a97b99ade1d3?w=1600&auto=format&fit=crop&q=80" 
+            alt="Mental Health and Community Wellbeing Support" 
+            className="w-full h-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-charcoal/85 sm:bg-charcoal/75 bg-gradient-to-r from-charcoal via-charcoal/90 to-charcoal/60" />
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -115,7 +122,7 @@ export default function CommunityImpact() {
               Making a Difference <br />
               <span className="text-gold">Beyond Therapy</span>
             </h1>
-            <p className="text-xl text-white/70 leading-relaxed font-light">
+            <p className="text-xl text-white/80 leading-relaxed font-light">
               At Dial-A-Therapist Ghana, our commitment to "Your care is our care" extends deep into the communities we serve. We believe that professional healthcare should be accessible to all, especially the most vulnerable among us.
             </p>
           </motion.div>
@@ -153,8 +160,8 @@ export default function CommunityImpact() {
             <div className="relative">
               <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&q=80&w=1000" 
-                  alt="Community Outreach Activity" 
+                  src="https://images.unsplash.com/photo-1573497620053-ea5300f94f21?w=1000&auto=format&fit=crop&q=80" 
+                  alt="Therapy & Clinical Counseling Support" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />

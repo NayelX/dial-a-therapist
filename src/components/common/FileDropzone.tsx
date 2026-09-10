@@ -1,5 +1,5 @@
-import React, { useState, useRef, ChangeEvent, DragEvent } from 'react';
-import { UploadCloud, X, Trash2, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef, ChangeEvent, DragEvent } from 'react';
+import { UploadCloud, Trash2, Image as ImageIcon } from 'lucide-react';
 
 export interface FileDropzoneProps {
   onFilesChange: (files: File[]) => void;
@@ -9,6 +9,80 @@ export interface FileDropzoneProps {
   files?: File[];
   required?: boolean;
 }
+
+const formatMimeType = (mime: string): string => {
+  if (!mime) return 'FILE';
+  const parts = mime.split('/');
+  if (parts.length > 1) {
+    const sub = parts[1].toUpperCase();
+    if (sub.includes('JPEG') || sub.includes('JPG')) return 'JPEG';
+    if (sub.includes('PNG')) return 'PNG';
+    if (sub.includes('WEBP')) return 'WEBP';
+    if (sub.includes('SVG')) return 'SVG';
+    return sub;
+  }
+  return mime.toUpperCase();
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+};
+
+const FilePreviewCard: React.FC<{
+  file: File;
+  index: number;
+  onRemove: (index: number) => void;
+}> = ({ file, index, onRemove }) => {
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-stone-50 border border-stone-200 rounded-xl shadow-sm">
+      {/* Thumbnail preview with fixed dimensions and object-fit: cover */}
+      <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-stone-200 border border-stone-200 flex items-center justify-center">
+        {previewUrl ? (
+          <img src={previewUrl} alt={file.name} className="w-full h-full object-cover" />
+        ) : (
+          <ImageIcon size={20} className="text-stone-400" />
+        )}
+      </div>
+
+      {/* File Details */}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold text-stone-800 truncate" title={file.name}>
+          {file.name}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-gold/15 text-gold-dark">
+            {formatMimeType(file.type)}
+          </span>
+          <span className="text-xs text-stone-500 font-medium">
+            {formatFileSize(file.size)}
+          </span>
+        </div>
+      </div>
+
+      {/* Remove Button */}
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        title="Remove file"
+        className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+      >
+        <Trash2 size={16} />
+      </button>
+    </div>
+  );
+};
 
 export const FileDropzone: React.FC<FileDropzoneProps> = ({
   onFilesChange,
@@ -121,55 +195,29 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
         </div>
       </div>
 
-      {/* Thumbnail Previews */}
+      {/* Selected Files Preview List */}
       {currentFiles.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between text-xs text-stone-500 font-medium px-1">
             <span>Selected Images ({currentFiles.length}/{maxFiles})</span>
-            {currentFiles.length > 0 && (
-              <button
-                type="button"
-                onClick={() => updateFiles([])}
-                className="text-rose-500 hover:underline flex items-center gap-1 text-[11px]"
-              >
-                Clear all
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => updateFiles([])}
+              className="text-rose-500 hover:underline flex items-center gap-1 text-[11px]"
+            >
+              Clear all
+            </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            {currentFiles.map((file, idx) => {
-              const previewUrl = URL.createObjectURL(file);
-              return (
-                <div
-                  key={`${file.name}-${idx}`}
-                  className="relative group rounded-xl overflow-hidden aspect-square border border-stone-200 shadow-sm bg-stone-100"
-                >
-                  <img
-                    src={previewUrl}
-                    alt={`Preview ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                    onLoad={() => URL.revokeObjectURL(previewUrl)}
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemove(idx);
-                      }}
-                      title="Remove image"
-                      className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full shadow-lg transition-transform hover:scale-110"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                  <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded-full">
-                    {idx + 1}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="space-y-2">
+            {currentFiles.map((file, idx) => (
+              <FilePreviewCard
+                key={`${file.name}-${file.size}-${idx}`}
+                file={file}
+                index={idx}
+                onRemove={handleRemove}
+              />
+            ))}
           </div>
         </div>
       )}

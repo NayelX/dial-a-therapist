@@ -35,6 +35,8 @@ create table if not exists public.contacts (
 );
 
 alter table public.contacts add column if not exists read boolean not null default false;
+alter table public.appointments add column if not exists archived boolean not null default false;
+alter table public.contacts add column if not exists archived boolean not null default false;
 
 create table if not exists public.impact_stories (
   id uuid primary key default gen_random_uuid(),

@@ -21,6 +21,7 @@ export interface Appointment {
   // Status & Metadata
   consent: boolean;
   status: 'Pending' | 'Confirmed' | 'Cancelled';
+  archived?: boolean;
   createdAt: string;
 }
 
@@ -49,6 +50,7 @@ export interface ContactMessage {
   subject: string;
   message: string;
   read: boolean;
+  archived?: boolean;
   createdAt: string;
 }
 
