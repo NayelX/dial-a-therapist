@@ -26,6 +26,7 @@ type ContactDbRow = {
 	subject: string;
 	message: string;
 	read?: boolean | null;
+	archived?: boolean | null;
 	created_at: string;
 };
 
@@ -47,6 +48,7 @@ type AppointmentDbRow = {
 	notes: string;
 	consent: boolean;
 	status: Appointment["status"];
+	archived?: boolean | null;
 	created_at: string;
 };
 
@@ -73,6 +75,7 @@ const toContactMessage = (row: ContactDbRow): ContactMessage => ({
 	subject: row.subject,
 	message: row.message,
 	read: Boolean(row.read),
+	archived: Boolean(row.archived),
 	createdAt: row.created_at,
 });
 
@@ -94,6 +97,7 @@ const toAppointment = (row: AppointmentDbRow): Appointment => ({
 	notes: row.notes,
 	consent: row.consent,
 	status: row.status,
+	archived: Boolean(row.archived),
 	createdAt: row.created_at,
 });
 
@@ -260,14 +264,12 @@ export const api = {
 			status: "Pending" as Appointment["status"],
 		};
 
-		const { data, error } = await supabase
+		const { error } = await supabase
 			.from("appointments")
-			.insert(dbPayload)
-			.select()
-			.single();
+			.insert(dbPayload);
 
 		if (error) throw new Error(error.message);
-		return toAppointment(data as AppointmentDbRow);
+		return { message: "Appointment request submitted successfully" };
 	},
 
 	createContact: async (payload: ContactPayload) => {
@@ -306,14 +308,50 @@ export const api = {
 		return toContactMessage(data as ContactDbRow);
 	},
 
+	markAllContactsRead: async () => {
+		await ensureAdminSession();
+		const { data, error } = await supabase
+			.from("contacts")
+			.update({ read: true })
+			.eq("read", false)
+			.select();
+
+		if (error) throw new Error(error.message);
+		return (data as ContactDbRow[]).map(toContactMessage);
+	},
+
 	getAdminAppointments: async () => {
 		await ensureAdminSession();
 		const { data, error } = await supabase
 			.from("appointments")
 			.select("*")
+			.or("archived.is.null,archived.eq.false")
 			.order("created_at", { ascending: false });
 
-		if (error) throw new Error(error.message);
+		if (error) {
+			// Fallback in case archived column is not yet migrated
+			const { data: fallbackData, error: fallbackError } = await supabase
+				.from("appointments")
+				.select("*")
+				.order("created_at", { ascending: false });
+			if (fallbackError) throw new Error(fallbackError.message);
+			return (fallbackData as AppointmentDbRow[]).map(toAppointment).filter((a) => !a.archived);
+		}
+		return (data as AppointmentDbRow[]).map(toAppointment);
+	},
+
+	getArchivedAppointments: async () => {
+		await ensureAdminSession();
+		const { data, error } = await supabase
+			.from("appointments")
+			.select("*")
+			.eq("archived", true)
+			.order("created_at", { ascending: false });
+
+		if (error) {
+			console.warn("Archived appointments query notice:", error.message);
+			return [];
+		}
 		return (data as AppointmentDbRow[]).map(toAppointment);
 	},
 
@@ -328,6 +366,95 @@ export const api = {
 
 		if (error) throw new Error(error.message);
 		return toAppointment(data as AppointmentDbRow);
+	},
+
+	setAppointmentArchived: async (id: string, archived: boolean) => {
+		await ensureAdminSession();
+		const { data, error } = await supabase
+			.from("appointments")
+			.update({ archived })
+			.eq("id", id)
+			.select()
+			.single();
+
+		if (error) throw new Error(error.message);
+		return toAppointment(data as AppointmentDbRow);
+	},
+
+	bulkUpdateAppointmentStatus: async (ids: string[], status: Appointment["status"]) => {
+		await ensureAdminSession();
+		if (ids.length === 0) return [];
+		const { data, error } = await supabase
+			.from("appointments")
+			.update({ status })
+			.in("id", ids)
+			.select();
+
+		if (error) throw new Error(error.message);
+		return (data as AppointmentDbRow[]).map(toAppointment);
+	},
+
+	bulkArchiveAppointments: async (ids: string[], archived: boolean = true) => {
+		await ensureAdminSession();
+		if (ids.length === 0) return [];
+		const { data, error } = await supabase
+			.from("appointments")
+			.update({ archived })
+			.in("id", ids)
+			.select();
+
+		if (error) throw new Error(error.message);
+		return (data as AppointmentDbRow[]).map(toAppointment);
+	},
+
+	deleteAppointment: async (id: string) => {
+		await ensureAdminSession();
+		const { error } = await supabase
+			.from("appointments")
+			.delete()
+			.eq("id", id);
+
+		if (error) throw new Error(error.message);
+	},
+
+	notifyStatusChange: async (payload: { appointmentId: string; status: Appointment["status"]; reason?: string }) => {
+		try {
+			const { data, error } = await supabase.functions.invoke("notify-status-change", {
+				body: {
+					table: "appointments",
+					record_id: payload.appointmentId,
+					new_status: payload.status,
+					reason: payload.reason,
+				},
+			});
+			if (error) {
+				console.warn("notify-status-change edge function warning:", error);
+			}
+			return data;
+		} catch (err) {
+			console.warn("Failed to invoke notify-status-change edge function:", err);
+			return null;
+		}
+	},
+
+	notifyBatchStatusChange: async (payload: { ids: string[]; status: Appointment["status"]; reason?: string }) => {
+		try {
+			const { data, error } = await supabase.functions.invoke("notify-status-change", {
+				body: {
+					table: "appointments",
+					record_ids: payload.ids,
+					new_status: payload.status,
+					reason: payload.reason,
+				},
+			});
+			if (error) {
+				console.warn("notify-status-change batch edge function warning:", error);
+			}
+			return data;
+		} catch (err) {
+			console.warn("Failed to invoke notify-status-change batch edge function:", err);
+			return null;
+		}
 	},
 
 	getImpactStoriesPublic: async () => {
